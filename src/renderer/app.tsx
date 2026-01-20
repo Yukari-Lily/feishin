@@ -6,6 +6,7 @@ import '/styles/overlayscrollbars.css';
 import '@mantine/core/styles.css';
 import '@mantine/dates/styles.css';
 import '@mantine/notifications/styles.css';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import isElectron from 'is-electron';
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -103,6 +104,7 @@ export const App = () => {
             <Suspense fallback={null}>
                 <ReleaseNotesModal />
             </Suspense>
+            <SpeedInsights />
         </MantineProvider>
     );
 };
