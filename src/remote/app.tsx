@@ -4,6 +4,7 @@ import '@mantine/notifications/styles.css';
 
 import '/@/shared/styles/global.css';
 
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { useEffect } from 'react';
 
 import { Shell } from '/@/remote/components/shell';
@@ -24,6 +25,7 @@ export const App = () => {
     return (
         <MantineProvider defaultColorScheme={mode} theme={theme}>
             <Shell />
+            <SpeedInsights />
         </MantineProvider>
     );
 };
