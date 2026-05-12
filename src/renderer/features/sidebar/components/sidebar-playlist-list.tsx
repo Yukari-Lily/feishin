@@ -185,7 +185,7 @@ const PlaylistRowButton = memo(
                         innerProps: modalProps,
                         modal: 'addToPlaylist',
                         size: 'lg',
-                        title: t('form.addToPlaylist.title', { postProcess: 'titleCase' }),
+                        title: t('form.addToPlaylist.title'),
                     });
                 },
             },
@@ -255,7 +255,7 @@ const PlaylistRowButton = memo(
                             {item.ownerId === permissions.userId && Boolean(item.public) && (
                                 <div className={styles.metadataGroupItem}>
                                     <Text isMuted size="sm">
-                                        {t('common.public', { postProcess: 'titleCase' })}
+                                        {t('common.public')}
                                     </Text>
                                 </div>
                             )}
@@ -489,11 +489,7 @@ export const SidebarPlaylistList = () => {
         <Accordion.Item value="playlists">
             <Accordion.Control component="div" role="button" style={{ userSelect: 'none' }}>
                 <Group justify="space-between" pr="var(--theme-spacing-md)">
-                    <Text fw={500}>
-                        {t('page.sidebar.playlists', {
-                            postProcess: 'titleCase',
-                        })}
-                    </Text>
+                    <Text fw={500}>{t('page.sidebar.playlists')}</Text>
                     <Group gap="xs">
                         <ActionIcon
                             icon="add"
@@ -503,9 +499,7 @@ export const SidebarPlaylistList = () => {
                             onClick={handleCreatePlaylistModal}
                             size="xs"
                             tooltip={{
-                                label: t('action.createPlaylist', {
-                                    postProcess: 'sentenceCase',
-                                }),
+                                label: t('action.createPlaylist'),
                             }}
                             variant="subtle"
                         />
@@ -519,9 +513,7 @@ export const SidebarPlaylistList = () => {
                             size="xs"
                             to={AppRoute.PLAYLISTS}
                             tooltip={{
-                                label: t('action.viewPlaylists', {
-                                    postProcess: 'sentenceCase',
-                                }),
+                                label: t('action.viewPlaylists'),
                             }}
                             variant="subtle"
                         />
@@ -684,9 +676,7 @@ export const SidebarSharedPlaylistList = () => {
         <Accordion.Item value="shared-playlists">
             <Accordion.Control>
                 <Text fw={500} variant="secondary">
-                    {t('page.sidebar.shared', {
-                        postProcess: 'titleCase',
-                    })}
+                    {t('page.sidebar.shared')}
                 </Text>
             </Accordion.Control>
             <Accordion.Panel>

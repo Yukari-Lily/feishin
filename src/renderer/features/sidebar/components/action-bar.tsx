@@ -28,7 +28,7 @@ export const ActionBar = () => {
                                 open();
                             }
                         }}
-                        placeholder={t('common.search', { postProcess: 'titleCase' })}
+                        placeholder={t('common.search')}
                         readOnly
                     />
                 </Grid.Col>
