@@ -35,6 +35,7 @@ import {
     LuChevronLeft,
     LuChevronRight,
     LuChevronUp,
+    LuCircle,
     LuCircleCheck,
     LuCircleX,
     LuClipboardCopy,
@@ -247,6 +248,7 @@ export const AppIcon = {
     brandSpotify: SpotifyLogoIcon,
     cache: LuCloudDownload,
     check: LuCheck,
+    circle: LuCircle,
     clipboardCopy: LuClipboardCopy,
     collection: LuPackage2,
     delete: LuTrash,
@@ -384,6 +386,7 @@ type IconColor =
     | 'muted'
     | 'primary'
     | 'success'
+    | 'transparent'
     | 'warn';
 
 const _Icon = forwardRef<HTMLDivElement, IconProps>((props, ref) => {
@@ -391,17 +394,19 @@ const _Icon = forwardRef<HTMLDivElement, IconProps>((props, ref) => {
 
     const IconComponent: ComponentType<any> = AppIcon[icon];
 
+    const colorClassToken = color ?? (fill && fill !== 'transparent' ? fill : undefined);
+
     const classNames = useMemo(
         () =>
             clsx(className, {
                 [styles.fill]: true,
                 [styles.pulse]: animate === 'pulse',
                 [styles.spin]: animate === 'spin',
-                [styles[`color-${color || fill}`]]: color || fill,
+                [styles[`color-${colorClassToken}`]]: colorClassToken,
                 [styles[`fill-${fill}`]]: fill,
                 [styles[`size-${size}`]]: true,
             }),
-        [animate, className, color, fill, size],
+        [animate, className, colorClassToken, fill, size],
     );
 
     return (

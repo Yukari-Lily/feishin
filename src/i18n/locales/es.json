@@ -263,7 +263,7 @@
         "lastfmApiKey": "Clave API para {{lastfm}}",
         "discordServeImage": "Servir imágenes de {{discord}} desde el servidor",
         "discordServeImage_description": "Comparte el arte de la portada para el estado de actividad de {{discord}} desde el propio servidor, solo disponible para Jellyfin y Navidrome. {{discord}} usa un bot para obtener las imágenes, por lo que tu servidor debe ser alcanzable desde el internet público",
-        "lastfm": "Mostrar enlaces de last.fm",
+        "lastfm": "Mostrar enlaces de Last.fm",
         "lastfm_description": "Muestra enlaces a Last.fm en las páginas de artistas/álbumes",
         "musicbrainz": "Mostrar enlaces de MusicBrainz",
         "musicbrainz_description": "Muestra enlaces a MusicBrainz en las páginas de artistas/álbumes, donde exista MusicBrainz ID",
@@ -342,7 +342,7 @@
         "playerFilters": "Filtrar las canciones de la cola",
         "playerFilters_description": "Omite la adición de canciones a la cola basado en los siguientes criterios",
         "playerbarSlider_description": "La forma de onda no es recomendable en una conexión a Internet lenta o medida",
-        "autoDJ": "DJ automático",
+        "autoDJ": "DJ Automático",
         "autoDJ_description": "Añade canciones similares a las de la cola automáticamente",
         "autoDJ_itemCount": "Recuento de elementos",
         "autoDJ_itemCount_description": "El número de elementos que se ha intentado añadir a la cola cuando DJ automático está activado",
@@ -533,7 +533,7 @@
         "comingSoon": "Próximamente…",
         "reset": "Restablecer",
         "disable": "Desactivar",
-        "sortOrder": "Ordenar",
+        "sortOrder": "Orden",
         "none": "Ninguno",
         "menu": "Menú",
         "restartRequired": "Reinicio requerido",
@@ -700,7 +700,7 @@
             "artists": "$t(entity.artist, {\"count\": 2})",
             "albumArtists": "$t(entity.albumArtist, {\"count\": 2})",
             "shared": "Compartido $t(entity.playlist, {\"count\": 2})",
-            "myLibrary": "Mi biblioteca",
+            "myLibrary": "Mi Biblioteca",
             "favorites": "$t(entity.favorite, {\"count\": 2})",
             "radio": "$t(entity.radioStation, {\"count\": 2})",
             "collections": "Colecciones"
@@ -761,7 +761,7 @@
             "genres": "$t(entity.genre, {\"count\": 2})"
         },
         "fullscreenPlayer": {
-            "upNext": "Siguiente",
+            "upNext": "A continuación",
             "config": {
                 "dynamicBackground": "Fondo dinámico",
                 "synchronized": "Sincronizado",
@@ -800,7 +800,7 @@
             "updates": "Actualización",
             "cache": "Caché",
             "application": "Aplicación",
-            "queryBuilder": "Generador de consultas",
+            "queryBuilder": "Generador de Consultas",
             "theme": "Tema",
             "controls": "Controles",
             "remote": "Remoto",
@@ -811,9 +811,9 @@
             "transcoding": "Transcodificación",
             "discord": "Discord",
             "sidebar": "Barra lateral",
-            "playerFilters": "Filtros del reproductor",
+            "playerFilters": "Filtros del Reproductor",
             "logger": "Registrador",
-            "lyricsDisplay": "Mostrar letras"
+            "lyricsDisplay": "Mostrar Letras"
         },
         "albumArtistList": {
             "title": "$t(entity.albumArtist, {\"count\": 2})"
@@ -926,10 +926,10 @@
             "ignoreSsl": "Ignorar SSL ($t(common.restartRequired))",
             "ignoreCors": "Ignorar CORS ($t(common.restartRequired))",
             "error_savePassword": "Un error ocurrió cuando se intentó guardar la contraseña",
-            "input_preferInstantMix": "Preferir mix instantáneo",
+            "input_preferInstantMix": "Preferir Mix Instantáneo",
             "input_preferInstantMixDescription": "Usa solo el mix instantáneo para obtener canciones similares. Útil si tienes complementos que modifican este comportamiento",
-            "input_remoteUrl": "URL pública",
-            "input_preferRemoteUrl": "Preferir URL pública",
+            "input_remoteUrl": "URL Pública",
+            "input_preferRemoteUrl": "Preferir URL Pública",
             "input_remoteUrlPlaceholder": "Opcional: URL pública para características externas"
         },
         "addToPlaylist": {
@@ -1020,7 +1020,7 @@
             "album": "Álbum",
             "favorite": "Favorito",
             "playCount": "Reproducciones",
-            "albumCount": "$t(entity.album, {\"count\": 2})",
+            "albumCount": "Álbumes",
             "releaseYear": "Año",
             "lastPlayed": "Última reproducción",
             "biography": "Biografía",
@@ -1029,19 +1029,19 @@
             "title": "Título",
             "bpm": "BPM",
             "dateAdded": "Fecha de adición",
-            "artist": "$t(entity.artist, {\"count\": 1})",
-            "songCount": "$t(entity.track, {\"count\": 2})",
+            "artist": "Artista",
+            "songCount": "Pistas",
             "trackNumber": "Pista",
-            "genre": "$t(entity.genre, {\"count\": 1})",
+            "genre": "Género",
             "albumArtist": "Artista del álbum",
             "path": "Ruta",
             "discNumber": "Disco",
-            "channels": "$t(common.channel, {\"count\": 2})",
-            "size": "$t(common.size)",
-            "codec": "$t(common.codec)",
+            "channels": "Canales",
+            "size": "Tamaño",
+            "codec": "Códecs",
             "owner": "Propietario",
-            "bitDepth": "$t(common.bitDepth)",
-            "sampleRate": "$t(common.sampleRate)"
+            "bitDepth": "Profundidad de Bit",
+            "sampleRate": "Frecuencia de Muestreo"
         },
         "config": {
             "label": {
@@ -1080,7 +1080,7 @@
                 "sampleRate": "$t(common.sampleRate)",
                 "titleArtist": "$t(common.title) (artista)",
                 "composer": "Compositor",
-                "albumGroup": "Grupo del álbum"
+                "albumGroup": "Grupo del Álbum"
             },
             "general": {
                 "gap": "$t(common.gap)",
@@ -1197,16 +1197,16 @@
         },
         "secondary": {
             "audiobook": "Audiolibro",
-            "audioDrama": "Audio drama",
+            "audioDrama": "Audio Drama",
             "compilation": "Compilación",
             "djMix": "Mezcla del DJ",
-            "fieldRecording": "Grabación de campo",
+            "fieldRecording": "Grabación de Campo",
             "interview": "Entrevista",
             "live": "En vivo",
             "mixtape": "Recopilatorio",
             "remix": "Remix",
             "soundtrack": "Banda sonora",
-            "spokenWord": "Palabra hablada",
+            "spokenWord": "Palabra Hablada",
             "demo": "Maqueta"
         }
     },
