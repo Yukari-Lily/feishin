@@ -160,7 +160,7 @@
     },
     "entity": {
         "album_other": "Album",
-        "albumArtist_other": "Artis album",
+        "albumArtist_other": "Artis Album",
         "albumArtistCount_other": "{{count}} artis album",
         "albumWithCount_other": "{{count}} album",
         "artist_other": "Artis",
@@ -170,14 +170,14 @@
         "folderWithCount_other": "{{count}} folder",
         "genre_other": "Genre",
         "genreWithCount_other": "{{count}} genre",
-        "playlist_other": "Daftar putar",
+        "playlist_other": "Daftar Putar",
         "play_other": "Putar {{count}}",
         "playlistWithCount_other": "{{count}} daftar putar",
         "smartPlaylist": "$t(entity.playlist, {\"count\": 1}) pintar",
         "track_other": "Pista",
         "song_other": "Lagu",
         "trackWithCount_other": "{{count}} pista",
-        "radioStation_other": "Stasiun radio",
+        "radioStation_other": "Stasiun Radio",
         "radioStationWithCount_other": "{{count}} stasiun radio"
     },
     "error": {

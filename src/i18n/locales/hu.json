@@ -192,8 +192,8 @@
         "play_other": "{{count}} lejátszások",
         "trackWithCount_one": "{{count}} sáv",
         "trackWithCount_other": "{{count}} sávok",
-        "radioStation_one": "Rádió állomás",
-        "radioStation_other": "Rádió állomások",
+        "radioStation_one": "Rádióállomás",
+        "radioStation_other": "Rádióállomások",
         "radioStationWithCount_one": "{{count}} rádióállomás",
         "radioStationWithCount_other": "{{count}} rádióállomások"
     },
