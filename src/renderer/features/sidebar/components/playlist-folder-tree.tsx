@@ -372,8 +372,24 @@ export const PlaylistFolderDragExpandProvider = ({
     expandedSet,
     setMany,
 }: PlaylistFolderDragExpandProviderProps) => {
+    const separator = useSidebarPlaylistFolderSeparator();
     const autoExpandedRef = useRef<Set<string>>(new Set());
     const activeHoveredRef = useRef<null | string>(null);
+
+    const getOpenChain = useCallback(
+        (folderPath: string) => {
+            const segments = folderPath.split(separator).filter((segment) => segment.length > 0);
+            const chain: string[] = [];
+
+            for (let index = 1; index < segments.length; index++) {
+                chain.push(segments.slice(0, index).join(separator));
+            }
+
+            chain.push(folderPath);
+            return chain;
+        },
+        [separator],
+    );
 
     const collapseAutoExpanded = useCallback(
         (paths: string[]) => {
@@ -388,35 +404,60 @@ export const PlaylistFolderDragExpandProvider = ({
 
     const onFolderDragHover = useCallback(
         (folderPath: string) => {
-            const previous = activeHoveredRef.current;
-            if (previous && previous !== folderPath) {
-                collapseAutoExpanded([previous]);
+            const current = activeHoveredRef.current;
+            if (
+                current &&
+                current !== folderPath &&
+                current.startsWith(`${folderPath}${separator}`)
+            ) {
+                return;
             }
+
+            const openChain = getOpenChain(folderPath);
             activeHoveredRef.current = folderPath;
 
-            if (expandedSet.has(folderPath) || autoExpandedRef.current.has(folderPath)) return;
-            autoExpandedRef.current.add(folderPath);
-            setMany([folderPath], true);
+            const toCollapse = [...autoExpandedRef.current].filter(
+                (path) => !openChain.includes(path),
+            );
+            if (toCollapse.length > 0) {
+                collapseAutoExpanded(toCollapse);
+            }
+
+            const toExpand = openChain.filter(
+                (path) => !expandedSet.has(path) && !autoExpandedRef.current.has(path),
+            );
+            if (toExpand.length === 0) return;
+
+            for (const path of toExpand) autoExpandedRef.current.add(path);
+            setMany(toExpand, true);
         },
-        [collapseAutoExpanded, expandedSet, setMany],
+        [collapseAutoExpanded, expandedSet, getOpenChain, separator, setMany],
     );
 
     const onFolderDragLeave = useCallback(
         (folderPath: string) => {
-            if (activeHoveredRef.current === folderPath) {
+            const active = activeHoveredRef.current;
+            if (active && active !== folderPath && active.startsWith(`${folderPath}${separator}`)) {
+                return;
+            }
+
+            if (active === folderPath) {
                 activeHoveredRef.current = null;
             }
             collapseAutoExpanded([folderPath]);
         },
-        [collapseAutoExpanded],
+        [collapseAutoExpanded, separator],
     );
 
-    const onFolderDrop = useCallback((folderPath: string) => {
-        autoExpandedRef.current.delete(folderPath);
-        if (activeHoveredRef.current === folderPath) {
-            activeHoveredRef.current = null;
-        }
-    }, []);
+    const onFolderDrop = useCallback(
+        (folderPath: string) => {
+            for (const path of getOpenChain(folderPath)) autoExpandedRef.current.delete(path);
+            if (activeHoveredRef.current === folderPath) {
+                activeHoveredRef.current = null;
+            }
+        },
+        [getOpenChain],
+    );
 
     const value = useMemo(
         () => ({ onFolderDragHover, onFolderDragLeave, onFolderDrop }),
