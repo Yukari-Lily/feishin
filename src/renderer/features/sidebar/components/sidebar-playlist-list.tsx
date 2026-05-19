@@ -19,6 +19,7 @@ import {
 import { usePlayButtonClick } from '/@/renderer/features/shared/hooks/use-play-button-click';
 import {
     collectFolderPaths,
+    PlaylistFolderDragExpandProvider,
     PlaylistFolderViews,
     PlaylistRootAccordionControl,
     usePlaylistFolderState,
@@ -571,7 +572,7 @@ export const SidebarPlaylistList = () => {
                             {inNavigation ? navigation.currentName : t('page.sidebar.playlists')}
                         </Text>
                     </Group>
-                    <Group gap="xs">
+                    <Group gap="xs" wrap="nowrap">
                         <ActionIcon
                             icon="add"
                             iconProps={{
@@ -623,15 +624,17 @@ export const SidebarPlaylistList = () => {
                 </Group>
             </PlaylistRootAccordionControl>
             <Accordion.Panel>
-                <PlaylistFolderViews
-                    {...folderViewState}
-                    allPlaylists={playlistItems?.items ?? []}
-                    expandedSet={expandedSet}
-                    navigation={navigation}
-                    onContextMenu={handleContextMenu}
-                    onReorder={handleReorder}
-                    onToggleFolder={toggle}
-                />
+                <PlaylistFolderDragExpandProvider expandedSet={expandedSet} setMany={setMany}>
+                    <PlaylistFolderViews
+                        {...folderViewState}
+                        allPlaylists={playlistItems?.items ?? []}
+                        expandedSet={expandedSet}
+                        navigation={navigation}
+                        onContextMenu={handleContextMenu}
+                        onReorder={handleReorder}
+                        onToggleFolder={toggle}
+                    />
+                </PlaylistFolderDragExpandProvider>
             </Accordion.Panel>
         </Accordion.Item>
     );
@@ -771,7 +774,7 @@ export const SidebarSharedPlaylistList = () => {
 
     const folderViewState = usePlaylistFolderViewState(playlistItems?.items ?? []);
     const navigation = usePlaylistNavigationState();
-    const { expandedSet, toggle } = usePlaylistFolderState('shared');
+    const { expandedSet, setMany, toggle } = usePlaylistFolderState('shared');
     const inNavigation =
         folderViewState.folderView === 'navigation' && navigation.pathStack.length > 0;
 
@@ -807,15 +810,17 @@ export const SidebarSharedPlaylistList = () => {
                 </Group>
             </Accordion.Control>
             <Accordion.Panel>
-                <PlaylistFolderViews
-                    {...folderViewState}
-                    allPlaylists={playlistItems?.items ?? []}
-                    expandedSet={expandedSet}
-                    navigation={navigation}
-                    onContextMenu={handleContextMenu}
-                    onReorder={handleReorder}
-                    onToggleFolder={toggle}
-                />
+                <PlaylistFolderDragExpandProvider expandedSet={expandedSet} setMany={setMany}>
+                    <PlaylistFolderViews
+                        {...folderViewState}
+                        allPlaylists={playlistItems?.items ?? []}
+                        expandedSet={expandedSet}
+                        navigation={navigation}
+                        onContextMenu={handleContextMenu}
+                        onReorder={handleReorder}
+                        onToggleFolder={toggle}
+                    />
+                </PlaylistFolderDragExpandProvider>
             </Accordion.Panel>
         </Accordion.Item>
     );
