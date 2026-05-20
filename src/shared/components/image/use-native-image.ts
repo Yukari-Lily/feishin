@@ -26,7 +26,10 @@ export function useNativeImage({
     const loadedRequestSignatureRef = useRef<null | string>(null);
     const objectUrlRef = useRef<null | string>(null);
     const onFetchErrorRef = useRef(onFetchError);
+    const requestRef = useRef(request);
     const [state, setState] = useState<NativeImageState>({ status: 'idle' });
+
+    requestRef.current = request;
 
     const requestSignature = useMemo(() => {
         if (!request) {
@@ -44,6 +47,8 @@ export function useNativeImage({
     onFetchErrorRef.current = onFetchError;
 
     useEffect(() => {
+        const request = requestRef.current;
+
         const abortCurrentRequest = () => {
             abortControllerRef.current?.abort();
             abortControllerRef.current = null;
@@ -62,28 +67,61 @@ export function useNativeImage({
         if (!request || !requestSignature) {
             abortCurrentRequest();
             revokeObjectUrl();
-            setState({ status: 'idle' });
+            setState((currentState) => {
+                if (currentState.status === 'idle' && !currentState.displaySrc) {
+                    return currentState;
+                }
+
+                return { status: 'idle' };
+            });
             return;
         }
 
         if (!enabled) {
             abortCurrentRequest();
-            setState((currentState) =>
-                currentState.displaySrc
-                    ? { ...currentState, status: 'loaded' }
-                    : { status: 'idle' },
-            );
+            setState((currentState) => {
+                if (currentState.displaySrc) {
+                    if (currentState.status === 'loaded') {
+                        return currentState;
+                    }
+
+                    return { ...currentState, status: 'loaded' };
+                }
+
+                if (currentState.status === 'idle' && !currentState.displaySrc) {
+                    return currentState;
+                }
+
+                return { status: 'idle' };
+            });
             return;
         }
 
         if (loadedRequestSignatureRef.current === requestSignature && objectUrlRef.current) {
-            setState({ displaySrc: objectUrlRef.current, status: 'loaded' });
+            const cachedObjectUrl = objectUrlRef.current;
+
+            setState((currentState) => {
+                if (
+                    currentState.status === 'loaded' &&
+                    currentState.displaySrc === cachedObjectUrl
+                ) {
+                    return currentState;
+                }
+
+                return { displaySrc: cachedObjectUrl, status: 'loaded' };
+            });
             return;
         }
 
         abortCurrentRequest();
         revokeObjectUrl();
-        setState({ status: 'loading' });
+        setState((currentState) => {
+            if (currentState.status === 'loading' && !currentState.displaySrc) {
+                return currentState;
+            }
+
+            return { status: 'loading' };
+        });
 
         const abortController = new AbortController();
         abortControllerRef.current = abortController;
@@ -138,7 +176,7 @@ export function useNativeImage({
                 abortControllerRef.current = null;
             }
         };
-    }, [enabled, fetchPriority, request, requestSignature]);
+    }, [enabled, fetchPriority, requestSignature]);
 
     useEffect(() => {
         return () => {

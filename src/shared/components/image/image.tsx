@@ -89,11 +89,18 @@ export function BaseImage({
     const effectiveImageRequest =
         isInSessionCache || !enableDebounce ? rawImageRequest : debouncedImageRequest;
 
+    const imageCacheKey = src ?? rawImageRequest?.cacheKey;
+    const trackLoadedInInstance = enableViewport;
+
     const [hasLoadedInInstance, setHasLoadedInInstance] = useState(false);
 
     useEffect(() => {
-        setHasLoadedInInstance(false);
-    }, [effectiveImageRequest?.cacheKey]);
+        if (!trackLoadedInInstance) {
+            return;
+        }
+
+        setHasLoadedInInstance((current) => (current ? false : current));
+    }, [imageCacheKey, trackLoadedInInstance]);
 
     const shouldLoadImage = Boolean(
         effectiveImageRequest &&
@@ -112,13 +119,13 @@ export function BaseImage({
     });
 
     useEffect(() => {
-        if (!nativeImage.isLoaded || !effectiveImageRequest?.cacheKey) {
+        if (!trackLoadedInInstance || !nativeImage.isLoaded || !imageCacheKey) {
             return;
         }
 
-        loadedImageCacheKeys.add(effectiveImageRequest.cacheKey);
-        setHasLoadedInInstance(true);
-    }, [effectiveImageRequest?.cacheKey, nativeImage.isLoaded]);
+        loadedImageCacheKeys.add(imageCacheKey);
+        setHasLoadedInInstance((current) => (current ? current : true));
+    }, [imageCacheKey, nativeImage.isLoaded, trackLoadedInInstance]);
 
     return (
         <ImageContainer
