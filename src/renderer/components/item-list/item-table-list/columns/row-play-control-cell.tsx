@@ -88,7 +88,7 @@ export const RowPlayControlCell = (
             <TableColumnContainer {...props} className={styles.expansionCell}>
                 <div className={styles.expansionInner}>
                     {showPlayControls ? (
-                        <HoverCard openDelay={300} position="top" withArrow>
+                        <HoverCard openDelay={300} position="top" withArrow withinPortal={false}>
                             <HoverCard.Target>{expansionTarget}</HoverCard.Target>
                             <HoverCard.Dropdown onClick={(e) => e.stopPropagation()}>
                                 <ItemRowPlayControls onPlay={onPlay} />
@@ -110,7 +110,7 @@ export const RowPlayControlCell = (
 
     return (
         <TableColumnTextContainer {...props} className={styles.fullSizeContent}>
-            <HoverCard openDelay={300} position="top" withArrow>
+            <HoverCard openDelay={300} position="top" withArrow withinPortal={false}>
                 <HoverCard.Target>
                     <Flex className={styles.indexContent} justify="center" w="100%">
                         {getIndexDisplay(false)}
