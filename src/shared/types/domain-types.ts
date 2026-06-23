@@ -414,10 +414,8 @@ export type Song = {
     userRating: null | number;
 };
 
-type ApiContext = {
-    pathReplace?: string;
-    pathReplaceWith?: string;
-};
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+type ApiContext = {};
 
 type BaseEndpointArgs = {
     apiClientProps: {
@@ -465,6 +463,8 @@ export const tagListSortMap: TagListSortMap = {
     },
 };
 
+export const SortKeyRandom = 'random';
+
 export enum AlbumListSort {
     ALBUM_ARTIST = 'albumArtist',
     ARTIST = 'artist',
@@ -476,7 +476,7 @@ export enum AlbumListSort {
     ID = 'id',
     NAME = 'name',
     PLAY_COUNT = 'playCount',
-    RANDOM = 'random',
+    RANDOM = SortKeyRandom,
     RATING = 'rating',
     RECENTLY_ADDED = 'recentlyAdded',
     RECENTLY_PLAYED = 'recentlyPlayed',
@@ -598,7 +598,7 @@ export enum SongListSort {
     ID = 'id',
     NAME = 'name',
     PLAY_COUNT = 'playCount',
-    RANDOM = 'random',
+    RANDOM = SortKeyRandom,
     RATING = 'rating',
     RECENTLY_ADDED = 'recentlyAdded',
     RECENTLY_PLAYED = 'recentlyPlayed',
@@ -725,7 +725,7 @@ export enum AlbumArtistListSort {
     FAVORITED = 'favorited',
     NAME = 'name',
     PLAY_COUNT = 'playCount',
-    RANDOM = 'random',
+    RANDOM = SortKeyRandom,
     RATING = 'rating',
     RECENTLY_ADDED = 'recentlyAdded',
     RELEASE_DATE = 'releaseDate',
@@ -814,7 +814,7 @@ export enum ArtistListSort {
     FAVORITED = 'favorited',
     NAME = 'name',
     PLAY_COUNT = 'playCount',
-    RANDOM = 'random',
+    RANDOM = SortKeyRandom,
     RATING = 'rating',
     RECENTLY_ADDED = 'recentlyAdded',
     RELEASE_DATE = 'releaseDate',
@@ -1363,7 +1363,7 @@ export type ScrobbleArgs = BaseEndpointArgs & {
 
 export type ScrobbleQuery = {
     albumId?: string;
-    event?: 'pause' | 'start' | 'unpause';
+    event?: 'pause' | 'start' | 'stop' | 'unpause';
     id: string;
     mediaType: 'podcast' | 'song';
     playbackRate: number;
