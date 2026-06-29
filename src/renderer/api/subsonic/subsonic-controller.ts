@@ -1090,8 +1090,14 @@ export const SubsonicController: InternalControllerEndpoint = {
         }
 
         switch (query.sortBy) {
+            case GenreListSort.ALBUM_COUNT:
+                results = orderBy(results, [(v) => v.albumCount], [sortOrder]);
+                break;
             case GenreListSort.NAME:
                 results = orderBy(results, [(v) => v.value.toLowerCase()], [sortOrder]);
+                break;
+            case GenreListSort.SONG_COUNT:
+                results = orderBy(results, [(v) => v.songCount], [sortOrder]);
                 break;
             default:
                 break;

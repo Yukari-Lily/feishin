@@ -73,6 +73,7 @@ export interface QueueData {
 }
 
 export type QueueSong = Song & {
+    _contextPlaylistId?: null | string;
     _uniqueId: string;
 };
 
@@ -154,7 +155,9 @@ export enum ExternalType {
 }
 
 export enum GenreListSort {
+    ALBUM_COUNT = 'albumCount',
     NAME = 'name',
+    SONG_COUNT = 'songCount',
 }
 
 export enum ImageType {
@@ -165,7 +168,9 @@ export enum ImageType {
 }
 
 export enum TagListSort {
+    ALBUM_COUNT = 'albumCount',
     NAME = 'name',
+    SONG_COUNT = 'songCount',
 }
 
 export type Album = {
@@ -429,19 +434,25 @@ type BaseEndpointArgs = {
 
 type GenreListSortMap = {
     jellyfin: Record<GenreListSort, JFGenreListSort | undefined>;
-    navidrome: Record<GenreListSort, NDGenreListSort | undefined>;
-    subsonic: Record<UserListSort, undefined>;
+    navidrome: Record<GenreListSort, NDGenreListSort>;
+    subsonic: Record<GenreListSort, undefined>;
 };
 
 export const genreListSortMap: GenreListSortMap = {
     jellyfin: {
+        albumCount: undefined,
         name: JFGenreListSort.NAME,
+        songCount: undefined,
     },
     navidrome: {
+        albumCount: NDGenreListSort.NAME,
         name: NDGenreListSort.NAME,
+        songCount: NDGenreListSort.NAME,
     },
     subsonic: {
+        albumCount: undefined,
         name: undefined,
+        songCount: undefined,
     },
 };
 
@@ -453,13 +464,19 @@ type TagListSortMap = {
 
 export const tagListSortMap: TagListSortMap = {
     jellyfin: {
+        albumCount: undefined,
         name: undefined,
+        songCount: undefined,
     },
     navidrome: {
+        albumCount: NDTagListSort.ALBUM_COUNT,
         name: NDTagListSort.TAG_VALUE,
+        songCount: NDTagListSort.SONG_COUNT,
     },
     subsonic: {
+        albumCount: undefined,
         name: undefined,
+        songCount: undefined,
     },
 };
 
