@@ -902,7 +902,9 @@
                 "horizontalBorders": "行邊框線",
                 "rowHoverHighlight": "滑鼠懸停Highlight",
                 "verticalBorders": "列邊框線",
-                "showHeader": "顯示標題"
+                "showHeader": "顯示標題",
+                "albumGroupConfig": "專輯群組設定",
+                "albumImageSize": "專輯圖片大小"
             },
             "label": {
                 "actions": "$t(common.action, {\"count\": 2})",
