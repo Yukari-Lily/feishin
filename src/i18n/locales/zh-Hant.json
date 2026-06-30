@@ -866,7 +866,9 @@
         "compressorThreshold_description": "開始進行壓縮的訊號電平。",
         "compressorThreshold": "閥值",
         "enableRomaji_description": "在日文歌詞下方顯示羅馬拼音。",
-        "enableRomaji": "啟用羅馬拼音顯示"
+        "enableRomaji": "啟用羅馬拼音顯示",
+        "windowBarTrackinfo": "在視窗標題列顯示曲目資訊",
+        "windowBarTrackinfo_description": "在視窗標題列中顯示目前播放曲目的標題與藝人、播放佇列中的位置，以及播放/暫停狀態。"
     },
     "table": {
         "config": {

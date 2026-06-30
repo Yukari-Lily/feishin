@@ -1218,6 +1218,8 @@
         "config": {
             "general": {
                 "advancedSettings": "Advanced settings",
+                "albumGroupConfig": "Album Group configuration",
+                "albumImageSize": "Album image size",
                 "autoFitColumns": "Auto fit columns",
                 "autosize": "Autosize",
                 "moveUp": "Move up",

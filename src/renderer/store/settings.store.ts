@@ -474,6 +474,7 @@ export const GeneralSettingsSchema = z.object({
         ),
     albumBackground: z.boolean(),
     albumBackgroundBlur: z.number(),
+    albumGroupImageSize: z.number(),
     artistBackground: z.boolean(),
     artistBackgroundBlur: z.number(),
     artistItems: z.array(SortableItemSchema(ArtistItemSchema)),
@@ -1166,6 +1167,7 @@ const initialState: SettingsState = {
         accent: 'rgb(53, 116, 252)',
         albumBackground: false,
         albumBackgroundBlur: 3,
+        albumGroupImageSize: 0,
         artistBackground: true,
         artistBackgroundBlur: 3,
         artistItems,
@@ -2644,6 +2646,9 @@ export const useButtonSize = () => useSettingsStore((state) => state.general.but
 export const useSkipButtons = () => useSettingsStore((state) => state.general.skipButtons, shallow);
 
 export const useImageRes = () => useSettingsStore((state) => state.general.imageRes, shallow);
+
+export const useAlbumGroupImageSize = () =>
+    useSettingsStore((state) => state.general.albumGroupImageSize);
 
 export const useVolumeWidth = () => useSettingsStore((state) => state.general.volumeWidth, shallow);
 
