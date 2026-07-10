@@ -1,0 +1,61 @@
+.karaoke-line {
+    width: 100%;
+    max-width: 100%;
+    padding: 0 1rem;
+    font-weight: 600;
+    line-height: 1.2;
+    color: var(--theme-colors-foreground);
+    word-break: normal;
+    overflow-wrap: break-word;
+    opacity: var(--lyric-opacity);
+    transform: scale(var(--lyric-scale));
+    transform-origin: var(--lyric-scale-origin) center;
+    transition:
+        filter calc(var(--karaoke-line-duration, 1s) / 3) 0.4s,
+        opacity calc(var(--karaoke-line-duration, 1s) / 2) 0.166s,
+        transform 0.166s var(--karaoke-anim-delay, 0s);
+    will-change: transform;
+}
+
+.karaoke-line:global(.lyrics-line-active),
+.karaoke-line:global(.lyrics-line-animating),
+.karaoke-line:global(.lyrics-line-pre-animating) {
+    opacity: 1 !important;
+    filter: blur(0);
+    transform: scale(1);
+}
+
+.karaoke-line:global(.lyrics-line-animating) {
+    transition-delay: var(--karaoke-anim-delay, 0s);
+}
+
+.karaoke-line:global(.synchronized) {
+    cursor: pointer;
+}
+
+.karaoke-word {
+    display: inline;
+}
+
+.romaji-line {
+    display: block;
+    max-width: 100%;
+    font-size: 0.8em;
+    font-weight: 600;
+    overflow-wrap: break-word;
+    white-space: normal;
+}
+
+.agent-line {
+    width: 100%;
+    max-width: 100%;
+    text-align: inherit;
+}
+
+.agent-text {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    overflow-wrap: break-word;
+    white-space: normal;
+}

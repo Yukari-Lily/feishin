@@ -14,30 +14,42 @@ import { LyricsOverride } from '/@/shared/types/domain-types';
 
 interface LyricsActionsProps {
     hasLyrics: boolean;
+    hasPronunciationLayer?: boolean;
+    hasTranslationLayer?: boolean;
     index: number;
     languages: { label: string; value: string }[];
     offsetMs: number;
     onExportLyrics: () => void;
     onRemoveLyric: () => void;
     onSearchOverride: (params: LyricsOverride) => void;
+    onTogglePronunciationLayer?: () => void;
+    onToggleTranslationLayer?: () => void;
     onTranslateLyric?: () => void;
     onUpdateOffset: (offsetMs: number) => void;
     setIndex: (idx: number) => void;
     settingsKey?: string;
+    showPronunciationLayer?: boolean;
+    showTranslationLayer?: boolean;
     synced?: boolean;
 }
 
 export const LyricsActions = ({
     hasLyrics,
+    hasPronunciationLayer = false,
+    hasTranslationLayer = false,
     index,
     languages,
     offsetMs,
     onExportLyrics,
     onRemoveLyric,
     onSearchOverride,
+    onTogglePronunciationLayer,
+    onToggleTranslationLayer,
     onTranslateLyric,
     onUpdateOffset,
     setIndex,
+    showPronunciationLayer = false,
+    showTranslationLayer = false,
 }: LyricsActionsProps) => {
     const { t } = useTranslation();
     const currentSong = usePlayerSong();
@@ -134,16 +146,38 @@ export const LyricsActions = ({
                 </Group>
 
                 <div style={{ position: 'absolute', right: 0, top: -50 }}>
-                    {isDesktop && sources.length && onTranslateLyric ? (
-                        <Button
-                            disabled={isActionsDisabled}
-                            onClick={onTranslateLyric}
-                            uppercase
-                            variant="subtle"
-                        >
-                            {t('common.translation')}
-                        </Button>
-                    ) : null}
+                    <Group gap="xs">
+                        {hasTranslationLayer && onToggleTranslationLayer ? (
+                            <Button
+                                disabled={isActionsDisabled}
+                                onClick={onToggleTranslationLayer}
+                                uppercase
+                                variant={showTranslationLayer ? 'filled' : 'subtle'}
+                            >
+                                {t('common.translation')}
+                            </Button>
+                        ) : null}
+                        {hasPronunciationLayer && onTogglePronunciationLayer ? (
+                            <Button
+                                disabled={isActionsDisabled}
+                                onClick={onTogglePronunciationLayer}
+                                uppercase
+                                variant={showPronunciationLayer ? 'filled' : 'subtle'}
+                            >
+                                Pronunciation
+                            </Button>
+                        ) : null}
+                        {isDesktop && sources.length && onTranslateLyric && !hasTranslationLayer ? (
+                            <Button
+                                disabled={isActionsDisabled}
+                                onClick={onTranslateLyric}
+                                uppercase
+                                variant="subtle"
+                            >
+                                {t('common.translation')}
+                            </Button>
+                        ) : null}
+                    </Group>
                 </div>
             </div>
         </>

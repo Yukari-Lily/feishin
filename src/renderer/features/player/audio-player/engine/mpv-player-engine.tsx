@@ -276,10 +276,21 @@ export const MpvPlayerEngine = (props: MpvPlayerEngineProps) => {
             handleMpvAutoNext(transcode);
         };
 
+        const handleTrackEnded = () => {
+            const { player } = usePlayerStore.getState();
+            if (player.status !== PlayerStatus.PLAYING) {
+                return;
+            }
+
+            mediaAutoNext();
+        };
+
         mpvPlayerListener.rendererAutoNext(handleOnAutoNext);
+        mpvPlayerListener.rendererTrackEnded(handleTrackEnded);
 
         return () => {
             ipc?.removeAllListeners('renderer-player-auto-next');
+            ipc?.removeAllListeners('renderer-player-track-ended');
         };
     }, [mediaAutoNext, onEnded, transcode]);
 

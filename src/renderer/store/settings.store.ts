@@ -505,6 +505,7 @@ export const GeneralSettingsSchema = z.object({
     lastFM: z.boolean(),
     lastfmApiKey: z.string(),
     listenBrainz: z.boolean(),
+    microtonalPitchControls: z.boolean(),
     musicBrainz: z.boolean(),
     nativeAspectRatio: z.boolean(),
     nativeSpotify: z.boolean(),
@@ -570,6 +571,8 @@ const LyricsDisplaySettingsSchema = z.object({
     gap: z.number(),
     gapUnsync: z.number(),
     opacityNonActive: z.number(),
+    paddingLeft: z.number(),
+    paddingRight: z.number(),
     scaleNonActive: z.number(),
 });
 
@@ -582,6 +585,8 @@ const LyricsSettingsSchema = z.object({
     enableRomaji: z.boolean().optional(),
     fetch: z.boolean(),
     follow: z.boolean(),
+    followScrollAlignment: z.number(),
+    lineLeadTimeMs: z.number(),
     preferLocalLyrics: z.boolean(),
     showMatch: z.boolean(),
     showProvider: z.boolean(),
@@ -1201,6 +1206,7 @@ const initialState: SettingsState = {
         lastFM: true,
         lastfmApiKey: '',
         listenBrainz: true,
+        microtonalPitchControls: false,
         musicBrainz: true,
         nativeAspectRatio: false,
         nativeSpotify: false,
@@ -1855,6 +1861,8 @@ const initialState: SettingsState = {
         enableRomaji: false,
         fetch: true,
         follow: true,
+        followScrollAlignment: 0,
+        lineLeadTimeMs: 800,
         preferLocalLyrics: true,
         showMatch: true,
         showProvider: true,
@@ -1870,6 +1878,8 @@ const initialState: SettingsState = {
             gap: 24,
             gapUnsync: 24,
             opacityNonActive: 0.2,
+            paddingLeft: 0,
+            paddingRight: 0,
             scaleNonActive: 0.95,
         },
     },
@@ -2493,7 +2503,7 @@ export const useSettingsStore = createWithEqualityFn<SettingsSlice>()(
                                     id: TableColumn.ALBUM_GROUP,
                                     isEnabled: false,
                                     pinned: 'left',
-                                    width: 200,
+                                    width: 240,
                                 });
                             }
                         }
@@ -2537,10 +2547,31 @@ export const useSettingsStore = createWithEqualityFn<SettingsSlice>()(
                     );
                 }
 
+                if (version < 30) {
+                    for (const [key, displaySettings] of Object.entries(state.lyricsDisplay)) {
+                        const legacySettings = displaySettings as typeof displaySettings & {
+                            paddingX?: number;
+                        };
+                        const legacyPaddingX = legacySettings.paddingX ?? 0;
+
+                        state.lyricsDisplay[key] = {
+                            ...displaySettings,
+                            paddingLeft: displaySettings.paddingLeft ?? legacyPaddingX,
+                            paddingRight: displaySettings.paddingRight ?? legacyPaddingX,
+                        };
+                    }
+                }
+
+                if (version < 31) {
+                    if (state.lyrics.followScrollAlignment === undefined) {
+                        state.lyrics.followScrollAlignment = 0;
+                    }
+                }
+
                 return persistedState;
             },
             name: 'store_settings',
-            version: 28,
+            version: 31,
         },
     ),
 );
@@ -2830,3 +2861,6 @@ export const useButterchurnSettings = () => {
         };
     }, shallow);
 };
+
+export const useMicrotonalPitchControls = () =>
+    useSettingsStore((state) => state.general.microtonalPitchControls, shallow);

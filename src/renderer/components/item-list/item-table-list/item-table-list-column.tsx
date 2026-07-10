@@ -414,6 +414,38 @@ export function getAlbumGroupRowCount(
     return end - start + 1;
 }
 
+export function getAlbumGroupSpanHeight(
+    groupRowCount: number,
+    baseHeight: number,
+    albumGroupImageSize: number,
+    contentHeight = 0,
+): number {
+    const rowSpanHeight = groupRowCount * baseHeight;
+    const imageSpanHeight =
+        albumGroupImageSize > 0 ? Math.max(albumGroupImageSize, rowSpanHeight) : rowSpanHeight;
+
+    return Math.max(imageSpanHeight, contentHeight);
+}
+
+export function getAlbumGroupStartRowIndex(
+    rowIndex: number,
+    getRowItem: ((index: number) => unknown) | undefined,
+    enableHeader: boolean | undefined,
+): number {
+    const item = getRowItem?.(rowIndex) as null | undefined | { album?: string };
+    if (!item?.album) return rowIndex;
+
+    const firstDataRow = enableHeader ? 1 : 0;
+    let start = rowIndex;
+    while (start > firstDataRow) {
+        const prevItem = getRowItem?.(start - 1) as null | undefined | { album?: string };
+        if (!prevItem || prevItem.album !== item.album) break;
+        start--;
+    }
+
+    return start;
+}
+
 export function isAlbumGroupingActive(columns: { id: string; isEnabled?: boolean }[]): boolean {
     return columns.some((col) => col.id === TableColumn.ALBUM_GROUP && col.isEnabled);
 }
@@ -513,9 +545,21 @@ function getAlbumGroupClampHeight(props: ItemTableListInnerColumn): null | numbe
         props.enableHeader,
         props.data.length,
     );
+    const groupStartRowIndex = getAlbumGroupStartRowIndex(
+        props.rowIndex,
+        props.getRowItem,
+        props.enableHeader,
+    );
+    const contentHeight = props.albumGroupContentHeights?.get(groupStartRowIndex) ?? 0;
+    const totalGroupHeight = getAlbumGroupSpanHeight(
+        groupRowCount,
+        baseHeight,
+        albumImageSize,
+        contentHeight,
+    );
 
-    // Only clamp when the row was actually grown to fit the image.
-    if (albumImageSize <= groupRowCount * baseHeight) return null;
+    // Only clamp when the row was actually grown to fit the image or wrapped text.
+    if (totalGroupHeight <= groupRowCount * baseHeight) return null;
 
     return baseHeight;
 }
@@ -842,6 +886,7 @@ export const TableColumnContainer = (
                 [styles.withHorizontalBorder]: showHorizontalBorder && clampHeight === null,
                 [styles.withVerticalBorder]: showVerticalBorder,
             })}
+            data-exclude-row-drag-border={props.type === TableColumn.ALBUM_GROUP ? true : undefined}
             data-row-index={isDataRow ? `${props.tableId}-${props.rowIndex}` : undefined}
             onClick={handleClick}
             onContextMenu={handleContextMenu}

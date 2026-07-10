@@ -1114,7 +1114,8 @@
             "input_preferInstantMixDescription": "僅使用即時混音功能來取得相似歌曲。若您擁有能修改此行為的外掛，此功能將相當實用",
             "input_preferRemoteUrl": "優先使用公開網址",
             "input_remoteUrl": "公開網址",
-            "input_remoteUrlPlaceholder": "選用：對外功能的公開網址"
+            "input_remoteUrlPlaceholder": "選用：對外功能的公開網址",
+            "input_passwordNoSSO": "不支援反向代理(SSO)驗證。僅支援使用者名稱/密碼驗證及 Subsonic 驗證"
         },
         "addToPlaylist": {
             "input_playlists": "$t(entity.playlist, {\"count\": 2})",
