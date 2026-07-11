@@ -454,7 +454,9 @@
                 "dynamicIsImage": "Włącz obraz w tle",
                 "lyricOffset": "Opóźnienie tekstów (ms)",
                 "lyricOpacityNonActive": "Przezroczystość nieaktywnego tekstu",
-                "lyricScaleNonActive": "Skala nieaktywnego tekstu"
+                "lyricScaleNonActive": "Skala nieaktywnego tekstu",
+                "lyricPaddingLeft": "Odstęp tekstu z lewej (%)",
+                "lyricPaddingRight": "Odstęp tekstu z prawej (%)"
             },
             "upNext": "Następne",
             "lyrics": "Tekst",
@@ -1148,7 +1150,8 @@
         "enableRomaji_description": "Wyświetlaj linijkę z wymową romaji pod japońskim tekstem.",
         "enableRomaji": "Włącz generowanie romaji",
         "windowBarTrackinfo": "Informacje o utworze w tytule okna",
-        "windowBarTrackinfo_description": "Wyświetlaj tytuł, wykonawcę, pozycję w kolejce i stan Odtwarzania/Wstrzymania w tytule okna."
+        "windowBarTrackinfo_description": "Wyświetlaj tytuł, wykonawcę, pozycję w kolejce i stan Odtwarzania/Wstrzymania w tytule okna.",
+        "audioDeviceDefault": "Domyślne systemu"
     },
     "table": {
         "config": {

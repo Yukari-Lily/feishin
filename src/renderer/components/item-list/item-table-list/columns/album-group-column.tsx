@@ -1,6 +1,8 @@
 import { useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { AlbumGroupHeader } from '/@/renderer/components/item-list/item-table-list/album-group-header';
+import { computeAlbumGroupMetadata } from '/@/renderer/components/item-list/item-table-list/album-group-metadata';
 import {
     isLastInAlbumGroup,
     ItemTableListInnerColumn,
@@ -10,6 +12,7 @@ import { Song } from '/@/shared/types/domain-types';
 import { Play } from '/@/shared/types/types';
 
 export const AlbumGroupColumn = (props: ItemTableListInnerColumn) => {
+    const { t } = useTranslation();
     const firstDataRow = props.enableHeader ? 1 : 0;
     const item = props.getRowItem?.(props.rowIndex) as null | Song | undefined;
 
@@ -76,12 +79,16 @@ export const AlbumGroupColumn = (props: ItemTableListInnerColumn) => {
     }
 
     let groupRowCount = 1;
+    const groupSongs: Song[] = [item];
     const totalDataRows = props.data.length + firstDataRow;
     for (let idx = props.rowIndex + 1; idx < totalDataRows; idx++) {
         const nextItem = props.getRowItem?.(idx) as null | Song | undefined;
         if (!nextItem || nextItem.album !== item.album) break;
         groupRowCount++;
+        groupSongs.push(nextItem);
     }
+
+    const metadata = computeAlbumGroupMetadata(groupSongs, groupRowCount, t);
 
     return (
         <TableColumnContainer
@@ -92,6 +99,7 @@ export const AlbumGroupColumn = (props: ItemTableListInnerColumn) => {
         >
             <AlbumGroupHeader
                 groupRowCount={groupRowCount}
+                metadata={metadata}
                 onPlay={handlePlay}
                 rowIndex={props.rowIndex}
                 setAlbumGroupContentHeight={props.setAlbumGroupContentHeight}

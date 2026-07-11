@@ -8,10 +8,9 @@
     transform: scale(var(--lyric-scale));
     transform-origin: var(--lyric-scale-origin) center;
     transition:
-        filter calc(var(--karaoke-line-duration, 1s) / 3) 0.4s,
-        opacity calc(var(--karaoke-line-duration, 1s) / 2) 0.166s,
-        transform 0.166s var(--karaoke-anim-delay, 0s);
-    will-change: transform;
+        opacity 0.4s ease-in-out,
+        transform 0.4s ease-in-out;
+    will-change: opacity, transform;
 }
 
 .lyric-line:global(.lyrics-line-active),
@@ -19,7 +18,6 @@
 .lyric-line:global(.lyrics-line-pre-animating),
 .lyric-line:global(.active) {
     opacity: 1 !important;
-    filter: blur(0);
     transform: scale(1);
 }
 
