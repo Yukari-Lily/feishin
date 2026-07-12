@@ -31,29 +31,33 @@ import { LibraryItem, Song } from '/@/shared/types/domain-types';
 import { Play } from '/@/shared/types/types';
 
 interface AlbumGroupHeaderProps {
+    groupKey?: string;
     groupRowCount?: number;
     metadata: AlbumGroupMetadata;
     onPlay?: (playType: Play) => void;
-    rowIndex?: number;
-    setAlbumGroupContentHeight?: (rowIndex: number, height: number) => void;
+    setAlbumGroupContentHeight?: (groupKey: string, height: number) => void;
     size?: AlbumGroupTextSize;
     song: Song | undefined;
+    storedContentHeight?: number;
 }
 
 export const AlbumGroupHeader = ({
+    groupKey,
     groupRowCount,
     metadata,
     onPlay,
-    rowIndex,
     setAlbumGroupContentHeight,
     size = 'normal',
     song,
+    storedContentHeight,
 }: AlbumGroupHeaderProps): ReactElement => {
     const { t } = useTranslation();
     const albumGroupItems = useAlbumGroupItems();
     const showFavoriteRating = useAlbumGroupShowFavoriteRating();
     const [isHovered, setIsHovered] = useState(false);
-    const [resolvedInfoHeight, setResolvedInfoHeight] = useState<number | undefined>();
+    const [resolved, setResolved] = useState<null | { forInfoHeight: number; height: number }>(
+        null,
+    );
     const playButtonBehavior = usePlayButtonBehavior();
     const albumImageSize = useAlbumGroupImageSize();
     const rowHeight = {
@@ -85,6 +89,13 @@ export const AlbumGroupHeader = ({
                 : groupRowCount * rowHeight
             : undefined;
 
+    // Ignore resolved height from a previous (larger) group span so minHeight
+    // cannot keep scrollHeight measurement stuck after a split/shrink.
+    const resolvedInfoHeight =
+        resolved && infoHeight !== undefined && resolved.forInfoHeight === infoHeight
+            ? resolved.height
+            : undefined;
+
     const imageContainerStyle =
         albumImageSize > 0
             ? {
@@ -106,12 +117,14 @@ export const AlbumGroupHeader = ({
 
         const measure = () => {
             const contentHeight = infoEl.scrollHeight;
-            const resolved = Math.max(infoHeight ?? 0, contentHeight);
+            const resolvedHeight = Math.max(infoHeight ?? 0, contentHeight);
 
-            setResolvedInfoHeight(resolved);
+            if (infoHeight !== undefined) {
+                setResolved({ forInfoHeight: infoHeight, height: resolvedHeight });
+            }
 
-            if (rowIndex !== undefined && setAlbumGroupContentHeight) {
-                setAlbumGroupContentHeight(rowIndex, contentHeight);
+            if (groupKey !== undefined && setAlbumGroupContentHeight) {
+                setAlbumGroupContentHeight(groupKey, contentHeight);
             }
         };
 
@@ -121,7 +134,14 @@ export const AlbumGroupHeader = ({
         resizeObserver.observe(infoEl);
 
         return () => resizeObserver.disconnect();
-    }, [infoHeight, rowIndex, setAlbumGroupContentHeight]);
+    }, [
+        groupKey,
+        groupRowCount,
+        infoHeight,
+        metadataRows.length,
+        setAlbumGroupContentHeight,
+        storedContentHeight,
+    ]);
 
     return (
         <div

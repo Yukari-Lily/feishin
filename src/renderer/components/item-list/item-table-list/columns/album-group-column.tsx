@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { AlbumGroupHeader } from '/@/renderer/components/item-list/item-table-list/album-group-header';
 import { computeAlbumGroupMetadata } from '/@/renderer/components/item-list/item-table-list/album-group-metadata';
 import {
+    getAlbumGroupHeightKey,
     isLastInAlbumGroup,
     ItemTableListInnerColumn,
     TableColumnContainer,
@@ -89,6 +90,10 @@ export const AlbumGroupColumn = (props: ItemTableListInnerColumn) => {
     }
 
     const metadata = computeAlbumGroupMetadata(groupSongs, groupRowCount, t);
+    const groupHeightKey = getAlbumGroupHeightKey(item, groupRowCount);
+    const storedContentHeight = groupHeightKey
+        ? props.albumGroupContentHeights?.get(groupHeightKey)
+        : undefined;
 
     return (
         <TableColumnContainer
@@ -98,13 +103,14 @@ export const AlbumGroupColumn = (props: ItemTableListInnerColumn) => {
             isDraggedOver={null}
         >
             <AlbumGroupHeader
+                groupKey={groupHeightKey}
                 groupRowCount={groupRowCount}
                 metadata={metadata}
                 onPlay={handlePlay}
-                rowIndex={props.rowIndex}
                 setAlbumGroupContentHeight={props.setAlbumGroupContentHeight}
                 size={props.size === 'default' ? 'normal' : props.size}
                 song={item}
+                storedContentHeight={storedContentHeight}
             />
         </TableColumnContainer>
     );

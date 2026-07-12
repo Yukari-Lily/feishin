@@ -136,7 +136,10 @@ export const Lyrics = ({ fadeOutNoLyricsMessage = true, settingsKey = 'default' 
     }, [data, indexToUse, preferLocalLyrics]);
 
     const { data: furiganaConvertedLyrics } = useFuriganaLyrics(lyrics?.lyrics, !!enableFurigana);
-    const { data: romajiConvertedLyrics } = useRomajiLyrics(lyrics?.lyrics, !!enableRomaji);
+    const { data: romajiConvertedLyrics, isFetching: isFetchingRomaji } = useRomajiLyrics(
+        lyrics?.lyrics,
+        !!enableRomaji,
+    );
 
     const rawSyncedLyrics = useMemo(() => {
         if (!synced || !lyrics || !('lyrics' in lyrics) || !Array.isArray(lyrics.lyrics)) {
@@ -226,12 +229,15 @@ export const Lyrics = ({ fadeOutNoLyricsMessage = true, settingsKey = 'default' 
     const displayOffsetMs = isLyricsDisabled ? 0 : currentOffsetMs;
     const useServerPronunciation = !!pronunciationLyricsOverlay;
 
-    const { data: syncedRomajiLyrics } = useSyncedRomajiLyrics(
-        rawSyncedLyrics,
+    const shouldGenerateSyncedRomaji =
         !!enableRomaji &&
-            !!rawSyncedLyrics &&
-            lyricsHasWordCues(rawSyncedLyrics) &&
-            !useServerPronunciation,
+        !!rawSyncedLyrics &&
+        lyricsHasWordCues(rawSyncedLyrics) &&
+        !useServerPronunciation;
+
+    const { data: syncedRomajiLyrics, isFetching: isFetchingSyncedRomaji } = useSyncedRomajiLyrics(
+        rawSyncedLyrics,
+        shouldGenerateSyncedRomaji,
     );
 
     const isKaraoke = useMemo(() => {
@@ -253,12 +259,11 @@ export const Lyrics = ({ fadeOutNoLyricsMessage = true, settingsKey = 'default' 
             offsetMs: displayOffsetMs,
             pronunciationLyrics: pronunciationLyricsOverlay,
             romajiLyrics:
-                enableRomaji && !useServerPronunciation
+                enableRomaji && !useServerPronunciation && !shouldGenerateSyncedRomaji
                     ? (romajiConvertedLyrics as SynchronizedLyricsProps['romajiLyrics'])
                     : null,
             settingsKey,
-            syncedRomajiLyrics:
-                enableRomaji && !useServerPronunciation ? (syncedRomajiLyrics ?? null) : null,
+            syncedRomajiLyrics: shouldGenerateSyncedRomaji ? (syncedRomajiLyrics ?? null) : null,
             translatedLyrics:
                 showTranslation && !translationLyricsOverlay ? translatedLyrics : null,
             translationLyrics: translationLyricsOverlay,
@@ -271,6 +276,7 @@ export const Lyrics = ({ fadeOutNoLyricsMessage = true, settingsKey = 'default' 
         isKaraoke,
         pronunciationLyricsOverlay,
         romajiConvertedLyrics,
+        shouldGenerateSyncedRomaji,
         syncedRomajiLyrics,
         settingsKey,
         showTranslation,
@@ -428,8 +434,14 @@ export const Lyrics = ({ fadeOutNoLyricsMessage = true, settingsKey = 'default' 
         return [];
     }, [data?.local]);
 
+    const isWaitingForRomaji =
+        !!enableRomaji &&
+        !!lyrics &&
+        (isFetchingRomaji || (shouldGenerateSyncedRomaji && isFetchingSyncedRomaji));
+
     const isLoadingLyrics =
-        shouldFetchLyrics && (isWaitingToFetchLyrics || isLoading || isRefetching);
+        shouldFetchLyrics &&
+        (isWaitingToFetchLyrics || isLoading || isRefetching || isWaitingForRomaji);
     const hasNoLyrics = !displayLyrics;
     const [shouldFadeOut, setShouldFadeOut] = useState(false);
 

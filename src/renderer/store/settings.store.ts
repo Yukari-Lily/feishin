@@ -1274,7 +1274,7 @@ const initialState: SettingsState = {
         sidebarCollapseShared: false,
         sidebarItems,
         sidebarPanelOrder: ['queue', 'lyrics', 'visualizer'],
-        sidebarPlaylistFolders: true,
+        sidebarPlaylistFolders: false,
         sidebarPlaylistFolderSeparator: '/',
         sidebarPlaylistFolderTreeIndent: 16,
         sidebarPlaylistFolderTreeLineColor: '',
