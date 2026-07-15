@@ -862,7 +862,11 @@
             "lyrics": "Letras",
             "related": "Relacionado",
             "visualizer": "Visualizador",
-            "noLyrics": "Sin letras"
+            "noLyrics": "Sin letras",
+            "lyricLayers": "Capas de letra",
+            "lyricLanguage": "Idioma",
+            "showPronunciation": "Pronunciación",
+            "showTranslation": "Traducción"
         },
         "albumDetail": {
             "moreFromArtist": "Más de este $t(entity.artist, {\"count\": 1})",
@@ -1199,7 +1203,9 @@
                 "rowHoverHighlight": "Resaltar al pasar el cursor por la fila",
                 "showHeader": "Mostrar cabecera",
                 "albumImageSize": "Tamaño de la imagen del álbum",
-                "albumGroupConfig": "Configuración del grupo del álbum"
+                "albumGroupConfig": "Configuración del grupo del álbum",
+                "albumGroupMetadata": "Campos de metadatos",
+                "albumGroupShowFavoriteRating": "Mostrar favoritos y calificaciones"
             },
             "view": {
                 "table": "Tabla",
