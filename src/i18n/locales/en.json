@@ -173,7 +173,11 @@
         "gridRows": "Grid rows",
         "tableColumns": "Table columns",
         "itemsMore": "{{count}} more",
-        "newVersionAvailable": "A new version is available"
+        "lastScan": "Last scan {{date}}",
+        "newVersionAvailable": "A new version is available",
+        "scanFolderCount": "{{count}} folders",
+        "scanItemCount": "{{count}} items",
+        "scanningLibrary": "Scanning library…"
     },
     "entity": {
         "album_one": "Album",

@@ -723,6 +723,7 @@ export const NavidromeController: InternalControllerEndpoint = {
     getRandomSongList: SubsonicController.getRandomSongList,
     getRoles: async ({ apiClientProps }) =>
         hasFeature(apiClientProps.server, ServerFeature.BFR) ? NAVIDROME_ROLES : [],
+    getScanStatus: SubsonicController.getScanStatus,
     getServerInfo: async (args) => {
         const { apiClientProps } = args;
 

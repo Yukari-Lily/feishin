@@ -15,10 +15,11 @@ import { FIELD_PRIORITY, KNOWN_TAG_MAP, KNOWN_TAGS, type KnownTag } from '../uti
 import { base64ToBytes, bytesToBase64, formatBatchFileErrors } from '../utils/utils';
 
 import { controller } from '/@/renderer/api/controller';
+import { eventEmitter } from '/@/renderer/events/event-emitter';
 import { useCurrentServer, useSettingsStoreActions, useTagEditorSettings } from '/@/renderer/store';
 import { resolveSongPath } from '/@/renderer/utils/resolve-song-path';
 import { toast } from '/@/shared/components/toast/toast';
-import { Song } from '/@/shared/types/domain-types';
+import { LibraryItem, Song } from '/@/shared/types/domain-types';
 
 export const EDIT_SCOPE_ALL = '__all__';
 
@@ -491,6 +492,14 @@ export const useMetadataEditor = ({ browser, songs: songsProp, utils }: UseMetad
                     } catch {
                         // non-fatal
                     }
+                }
+
+                if (server) {
+                    eventEmitter.emit('TAG_EDITED', {
+                        id: songsInScope.map((s) => s.id),
+                        itemType: LibraryItem.SONG,
+                        serverId: server.id,
+                    });
                 }
 
                 if (close) {

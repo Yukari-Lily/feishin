@@ -560,7 +560,8 @@
             "noMusicFolder": "Не выбрана папка с музыкой",
             "multipleMusicFolders": "Выбрано {{count}} папок с музыкой",
             "commandPalette": "Открыть командную строку",
-            "settings": "$t(common.setting, {\"count\": 2})"
+            "settings": "$t(common.setting, {\"count\": 2})",
+            "logout": "Выйти"
         },
         "manageServers": {
             "title": "Управление серверами",

@@ -1355,6 +1355,22 @@ export const SubsonicController: InternalControllerEndpoint = {
         final.splice(0, 0, { label: 'all artists', value: '' });
         return final;
     },
+    getScanStatus: async (args) => {
+        const { apiClientProps } = args;
+
+        const res = await ssApiClient(apiClientProps).getScanStatus({ query: {} });
+
+        if (res.status !== 200) {
+            throw new Error('Failed to get scan status');
+        }
+
+        return {
+            count: res.body.scanStatus.count,
+            folderCount: res.body.scanStatus.folderCount,
+            lastScan: res.body.scanStatus.lastScan,
+            scanning: res.body.scanStatus.scanning,
+        };
+    },
     getServerInfo: async (args) => {
         const { apiClientProps } = args;
 

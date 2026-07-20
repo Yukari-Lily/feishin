@@ -206,6 +206,14 @@ export const contract = c.router({
             400: jfType._response.error,
         },
     },
+    getScheduledTasks: {
+        method: 'GET',
+        path: 'ScheduledTasks',
+        responses: {
+            200: jfType._response.scheduledTasks,
+            400: jfType._response.error,
+        },
+    },
     getServerInfo: {
         method: 'GET',
         path: 'system/info',

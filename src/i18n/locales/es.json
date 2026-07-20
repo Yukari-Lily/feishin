@@ -803,7 +803,8 @@
             "selectMusicFolder": "Seleccionar carpeta de música",
             "noMusicFolder": "Ninguna carpeta de música seleccionada",
             "multipleMusicFolders": "{{count}} carpetas de música seleccionadas",
-            "commandPalette": "Abrir paleta de comandos"
+            "commandPalette": "Abrir paleta de comandos",
+            "logout": "Cerrar sesión"
         },
         "contextMenu": {
             "addToPlaylist": "$t(action.addToPlaylist)",

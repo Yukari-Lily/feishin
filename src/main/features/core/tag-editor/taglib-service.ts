@@ -285,7 +285,7 @@ export async function writeFilesTags(
                     }
 
                     for (const key of propertyRemovals) {
-                        delete properties[canonicalizePropertyKey(key)];
+                        properties[canonicalizePropertyKey(key)] = [];
                     }
 
                     file.setProperties(properties);
