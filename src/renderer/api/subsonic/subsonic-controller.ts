@@ -2082,6 +2082,17 @@ export const SubsonicController: InternalControllerEndpoint = {
 
         return res.body;
     },
+    refreshItems: async (args) => {
+        const { apiClientProps } = args;
+
+        const res = await ssApiClient(apiClientProps).startScan({ query: {} });
+
+        if (res.status !== 200) {
+            throw new Error('Failed to start scan');
+        }
+
+        return null;
+    },
     removeFromPlaylist: async ({ apiClientProps, query }) => {
         const res = await ssApiClient(apiClientProps).updatePlaylist({
             query: {
@@ -2239,41 +2250,35 @@ export const SubsonicController: InternalControllerEndpoint = {
                 positionMs: Math.round(query.position ?? 0),
             };
 
-            const reportPlayback = (state: 'paused' | 'playing' | 'starting' | 'stopped') => {
-                return ssApiClient(apiClientProps).reportPlayback({
+            const reportPlayback = async (state: 'paused' | 'playing' | 'starting' | 'stopped') => {
+                const res = await ssApiClient(apiClientProps).reportPlayback({
                     query: {
                         ...defaultParams,
                         state,
                     },
                 });
-            };
-
-            const promises: Promise<any>[] = [];
-
-            switch (query.event) {
-                case 'pause':
-                    promises.push(reportPlayback('paused'));
-                    break;
-                case 'start':
-                    promises.push(reportPlayback('starting'));
-                    promises.push(reportPlayback('playing'));
-                    break;
-                case 'stop':
-                    promises.push(reportPlayback('stopped'));
-                    break;
-                case 'unpause':
-                    promises.push(reportPlayback('playing'));
-                    break;
-                default:
-                    break;
-            }
-
-            for (const promise of promises) {
-                const res = await promise;
 
                 if (res.status !== 200) {
                     throw new Error('Failed to report playback');
                 }
+            };
+
+            switch (query.event) {
+                case 'pause':
+                    await reportPlayback('paused');
+                    break;
+                case 'start':
+                    await reportPlayback('starting');
+                    await reportPlayback('playing');
+                    break;
+                case 'stop':
+                    await reportPlayback('stopped');
+                    break;
+                case 'unpause':
+                    await reportPlayback('playing');
+                    break;
+                default:
+                    break;
             }
 
             return null;

@@ -50,7 +50,9 @@
         "sleepTimer_cancel": "Zrušit časovač",
         "albumRadio": "Rádio alba",
         "scrobbleForceSubmit": "Vynutit scrobble",
-        "sleepTimer_endOfAlbum": "Konec aktuálního alba"
+        "sleepTimer_endOfAlbum": "Konec aktuálního alba",
+        "nextAlbum": "Alt+kliknutí pro daší album",
+        "previousAlbum": "Alt+kliknutí pro předchozí album"
     },
     "setting": {
         "crossfadeStyle_description": "Vyberte způsob prolnutí u přehrávače zvuku",
@@ -500,7 +502,9 @@
         "windowBarTrackinfo": "Informace o skladbě v titulku okna",
         "audioDeviceDefault": "Podle systému",
         "microtonalPitchControls": "Ovládání mikrotonální výšky tónu",
-        "microtonalPitchControls_description": "Přidat další ovládání výšky mezi půltóny"
+        "microtonalPitchControls_description": "Přidat další ovládání výšky mezi půltóny",
+        "hotkey_playbackNextAlbum": "Další album",
+        "hotkey_playbackPreviousAlbum": "Předchozí album"
     },
     "action": {
         "editPlaylist": "Upravit $t(entity.playlist, {\"count\": 1})",
@@ -721,7 +725,8 @@
                 "albumImageSize": "Velikost obrázku alba",
                 "albumGroupConfig": "Nastavení skupiny alb",
                 "albumGroupShowFavoriteRating": "Zobrazit oblíbené a hodnocení",
-                "albumGroupMetadata": "Pole metadat"
+                "albumGroupMetadata": "Pole metadat",
+                "albumGroupVerticalLayout": "Vertikální rozložení"
             },
             "label": {
                 "releaseDate": "Datum vydání",
