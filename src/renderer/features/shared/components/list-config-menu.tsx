@@ -27,7 +27,7 @@ export const SONG_DISPLAY_TYPES: ListConfigMenuDisplayTypeConfig[] = [
 const DISPLAY_TYPES = [
     {
         label: (
-            <Group align="center" justify="center" p="sm">
+            <Group align="center" gap="sm" justify="center" p="sm" wrap="nowrap">
                 <Icon icon="layoutTable" size="lg" />
                 {i18n.t('table.config.view.table') as string}
             </Group>
@@ -36,7 +36,7 @@ const DISPLAY_TYPES = [
     },
     {
         label: (
-            <Group align="center" justify="center" p="sm">
+            <Group align="center" gap="sm" justify="center" p="sm" wrap="nowrap">
                 <Icon icon="layoutGrid" size="lg" />
                 {i18n.t('table.config.view.grid') as string}
             </Group>
@@ -45,7 +45,7 @@ const DISPLAY_TYPES = [
     },
     {
         label: (
-            <Group align="center" justify="center" p="sm">
+            <Group align="center" gap="sm" justify="center" p="sm" wrap="nowrap">
                 <Icon icon="layoutDetail" size="lg" />
                 {i18n.t('table.config.view.detail') as string}
             </Group>
