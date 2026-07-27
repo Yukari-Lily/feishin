@@ -247,6 +247,7 @@ const ENV_SETTING_SPECS: EnvSettingSpec[] = [
         path: ['general', 'showLyricsInSidebar'],
         type: 'bool',
     },
+    { key: 'FS_GENERAL_SHOW_FAVORITES', path: ['general', 'showFavorites'], type: 'bool' },
     {
         key: 'FS_GENERAL_SHOW_QUEUE_IN_SIDEBAR',
         path: ['general', 'showQueueInSidebar'],
