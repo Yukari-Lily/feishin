@@ -1124,6 +1124,10 @@ export type ShareItemBody = {
 // Sharing
 export type ShareItemResponse = undefined | { id: string };
 
+export type StartLibraryScanArgs = BaseEndpointArgs;
+
+export type StartLibraryScanResponse = null;
+
 export type UpdateInternetRadioStationArgs = BaseEndpointArgs & {
     body: UpdateInternetRadioStationBody;
     query: UpdateInternetRadioStationQuery;
@@ -1602,6 +1606,7 @@ export type ControllerEndpoint = {
     setPlaylistSongs: (args: SetPlaylistSongsArgs) => Promise<SetPlaylistSongsResponse>;
     setRating?: (args: SetRatingArgs) => Promise<RatingResponse>;
     shareItem?: (args: ShareItemArgs) => Promise<ShareItemResponse>;
+    startLibraryScan: (args: StartLibraryScanArgs) => Promise<StartLibraryScanResponse>;
     updateInternetRadioStation: (
         args: UpdateInternetRadioStationArgs,
     ) => Promise<UpdateInternetRadioStationResponse>;
@@ -1780,6 +1785,9 @@ export type InternalControllerEndpoint = {
     ) => Promise<SetPlaylistSongsResponse>;
     setRating?: (args: ReplaceApiClientProps<SetRatingArgs>) => Promise<RatingResponse>;
     shareItem?: (args: ReplaceApiClientProps<ShareItemArgs>) => Promise<ShareItemResponse>;
+    startLibraryScan: (
+        args: ReplaceApiClientProps<StartLibraryScanArgs>,
+    ) => Promise<StartLibraryScanResponse>;
     updateInternetRadioStation: (
         args: ReplaceApiClientProps<UpdateInternetRadioStationArgs>,
     ) => Promise<UpdateInternetRadioStationResponse>;

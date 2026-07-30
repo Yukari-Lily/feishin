@@ -2366,6 +2366,17 @@ export const SubsonicController: InternalControllerEndpoint = {
 
         return null;
     },
+    startLibraryScan: async (args) => {
+        const { apiClientProps } = args;
+
+        const res = await ssApiClient(apiClientProps).startScan({ query: {} });
+
+        if (res.status !== 200) {
+            throw new Error('Failed to start library scan');
+        }
+
+        return null;
+    },
     updateInternetRadioStation: async (args) => {
         const { apiClientProps, body, query } = args;
 
