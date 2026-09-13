@@ -26,6 +26,7 @@ import {
     useAppStoreActions,
     useFullScreenPlayerStore,
     useGeneralSettings,
+    useImagePlaceholderPriority,
     usePlayerSong,
     useSetFullScreenPlayerStore,
 } from '/@/renderer/store';
@@ -45,6 +46,7 @@ import { ImageUnloader } from '/@/shared/components/image/image';
 import { ScrollArea } from '/@/shared/components/scroll-area/scroll-area';
 import { Text } from '/@/shared/components/text/text';
 import { Tooltip } from '/@/shared/components/tooltip/tooltip';
+import { useImageHashUrl } from '/@/shared/hooks/use-image-hash-url';
 import { ExplicitStatus, LibraryItem } from '/@/shared/types/domain-types';
 import { Platform } from '/@/shared/types/types';
 
@@ -179,6 +181,12 @@ const SidebarImage = () => {
         serverId: currentSong?._serverId,
         type: 'sidebar',
     });
+    const imagePlaceholderPriority = useImagePlaceholderPriority();
+    const songHashUrl = useImageHashUrl(
+        currentSong?.thumbHash,
+        currentSong?.blurHash,
+        imagePlaceholderPriority,
+    );
 
     const radioImageUrl = useItemImageUrl({
         id: isRadioActive ? currentStationArt?.imageId || undefined : undefined,
@@ -249,6 +257,15 @@ const SidebarImage = () => {
                         })}
                         loading="eager"
                         src={imageUrl}
+                        style={
+                            songHashUrl
+                                ? {
+                                      backgroundImage: `url(${songHashUrl})`,
+                                      backgroundPosition: 'center',
+                                      backgroundSize: 'cover',
+                                  }
+                                : undefined
+                        }
                     />
                 ) : (
                     <ImageUnloader icon="emptySongImage" />
