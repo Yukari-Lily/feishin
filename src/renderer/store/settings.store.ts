@@ -642,7 +642,7 @@ const LyricsSettingsSchema = z.object({
     followScrollAlignment: z.number(),
     lineLeadTimeMs: z.number(),
     preferLocalLyrics: z.boolean(),
-    proxyUrl: z.string(),
+    proxyUrl: z.string().default(''),
     showMatch: z.boolean(),
     showProvider: z.boolean(),
     sources: z.array(z.nativeEnum(LyricSource)),
