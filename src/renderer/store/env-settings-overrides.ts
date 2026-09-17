@@ -440,6 +440,12 @@ const ENV_SETTING_SPECS: EnvSettingSpec[] = [
         type: 'num',
     },
     { key: 'FS_LYRICS_PREFER_LOCAL', path: ['lyrics', 'preferLocalLyrics'], type: 'bool' },
+    {
+        key: 'FS_LYRICS_PROXY_URL',
+        path: ['lyrics', 'proxyUrl'],
+        skipIfEmpty: true,
+        type: 'string',
+    },
     { key: 'FS_LYRICS_SHOW_MATCH', path: ['lyrics', 'showMatch'], type: 'bool' },
     { key: 'FS_LYRICS_SHOW_PROVIDER', path: ['lyrics', 'showProvider'], type: 'bool' },
     {

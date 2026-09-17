@@ -4,6 +4,7 @@ import isElectron from 'is-electron';
 import { api } from '/@/renderer/api';
 import { queryKeys } from '/@/renderer/api/query-keys';
 import { getDefaultStructuredIndex } from '/@/renderer/features/lyrics/api/lyrics-utils';
+import { webLyricsApi } from '/@/renderer/features/lyrics/api/web-lyrics-api';
 import { queryClient, QueryHookArgs } from '/@/renderer/lib/react-query';
 import { getServerById, useSettingsStore } from '/@/renderer/store';
 import { hasFeature } from '/@/shared/api/utils';
@@ -24,7 +25,13 @@ import { LyricSource } from '/@/shared/types/domain-types';
 import { LyricsResponse } from '/@/shared/types/domain-types';
 import { ServerFeature } from '/@/shared/types/features-types';
 
-const lyricsIpc = isElectron() ? window.api.lyrics : null;
+// The Electron build fetches internet lyrics in the main process over IPC.
+// The web build has no main process, so it uses the browser implementation
+// (direct provider APIs plus the optional lyrics worker). Both expose the same
+// three remote lookup methods, which keeps every caller in this file - and
+// therefore the automatic player page lookup and the manual search panel -
+// unchanged.
+const lyricsIpc = isElectron() ? window.api.lyrics : webLyricsApi;
 
 export type LyricsQueryResult = {
     local: FullLyricsMetadata | null | StructuredLyric[];

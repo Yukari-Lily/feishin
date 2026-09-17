@@ -56,7 +56,6 @@ export const LyricSettings = memo(() => {
             description: t('setting.preferLocalLyrics', {
                 context: 'description',
             }),
-            isHidden: !isElectron(),
             title: t('setting.preferLocalLyrics'),
         },
         {
@@ -70,7 +69,6 @@ export const LyricSettings = memo(() => {
             description: t('setting.lyricFetch', {
                 context: 'description',
             }),
-            isHidden: !isElectron(),
             title: t('setting.lyricFetch'),
         },
         {
@@ -90,8 +88,25 @@ export const LyricSettings = memo(() => {
             description: t('setting.lyricFetchProvider', {
                 context: 'description',
             }),
-            isHidden: !isElectron(),
             title: t('setting.lyricFetchProvider'),
+        },
+        {
+            control: (
+                <TextInput
+                    aria-label="Lyrics provider URL"
+                    defaultValue={settings.proxyUrl}
+                    onBlur={(e) => updateSetting({ proxyUrl: e.currentTarget.value.trim() })}
+                    placeholder="/api/lyrics"
+                    width={300}
+                />
+            ),
+            description: t('setting.lyricProxyUrl', {
+                context: 'description',
+                defaultValue:
+                    'Web player only. Absolute URL or same-origin path of the lyrics proxy (for example /api/lyrics, auto-detected when this is empty). LRCLib and SimpMusic work without a proxy',
+            }),
+            isHidden: isElectron(),
+            title: t('setting.lyricProxyUrl', { defaultValue: 'Lyrics provider URL' }),
         },
         {
             control: (
@@ -134,7 +149,6 @@ export const LyricSettings = memo(() => {
             description: t('setting.neteaseTranslation', {
                 context: 'description',
             }),
-            isHidden: !isElectron(),
             title: t('setting.neteaseTranslation'),
         },
         {

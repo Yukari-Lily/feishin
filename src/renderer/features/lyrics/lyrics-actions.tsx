@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 import styles from './lyrics-actions.module.css';
 
+import { isWebRemoteLyricsAvailable } from '/@/renderer/features/lyrics/api/web-lyrics-api';
 import { openLyricSearchModal } from '/@/renderer/features/lyrics/components/lyrics-search-form';
 import { useLyricsSettings, usePlayerSong } from '/@/renderer/store';
 import { ActionIcon } from '/@/shared/components/action-icon/action-icon';
@@ -91,6 +92,9 @@ export const LyricsActions = ({
 
     const isActionsDisabled = !currentSong;
     const isDesktop = isElectron();
+    // The web build can search remote lyrics too, as long as a proxy is
+    // configured or a CORS friendly provider is enabled.
+    const canSearchRemote = isDesktop || isWebRemoteLyricsAvailable(sources);
     const hasServerTranslationLayer = overlayLayers.some((layer) => layer.kind === 'translation');
     const hasMultipleLanguages = languages.length > 1;
 
@@ -249,7 +253,7 @@ export const LyricsActions = ({
                 </Group>
             ) : null}
             <Group className={styles.controlsRow} gap="xs" justify="center">
-                {isDesktop && sources.length ? (
+                {canSearchRemote && sources.length ? (
                     <Button
                         disabled={isActionsDisabled}
                         onClick={() =>
@@ -304,7 +308,7 @@ export const LyricsActions = ({
                         uppercase
                         variant="subtle"
                     >
-                        {hasLyrics && isDesktop ? t('common.clear') : t('common.refresh')}
+                        {hasLyrics && canSearchRemote ? t('common.clear') : t('common.refresh')}
                     </Button>
                 ) : null}
                 {isDesktop && sources.length && onTranslateLyric && !hasServerTranslationLayer ? (

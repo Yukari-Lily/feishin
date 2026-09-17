@@ -77,6 +77,7 @@ declare global {
         FS_LYRICS_PADDING_LEFT?: string;
         FS_LYRICS_PADDING_RIGHT?: string;
         FS_LYRICS_PREFER_LOCAL?: string;
+        FS_LYRICS_PROXY_URL?: string;
         FS_LYRICS_SHOW_MATCH?: string;
         FS_LYRICS_SHOW_PROVIDER?: string;
         FS_LYRICS_TRANSLATION_API_KEY?: string;

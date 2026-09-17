@@ -416,7 +416,6 @@ export const LyricsSettingsForm = ({ settingsKey }: LyricsSettingsFormProps) => 
                 context: 'description',
             }),
             id: 'preferLocalLyrics',
-            isHidden: !isElectron(),
             label: t('setting.preferLocalLyrics'),
         },
         {
@@ -430,7 +429,6 @@ export const LyricsSettingsForm = ({ settingsKey }: LyricsSettingsFormProps) => 
                 context: 'description',
             }),
             id: 'fetch',
-            isHidden: !isElectron(),
             label: t('setting.lyricFetch'),
         },
         {
@@ -451,8 +449,25 @@ export const LyricsSettingsForm = ({ settingsKey }: LyricsSettingsFormProps) => 
                 context: 'description',
             }),
             id: 'sources',
-            isHidden: !isElectron(),
             label: t('setting.lyricFetchProvider'),
+        },
+        {
+            component: (
+                <TextInput
+                    aria-label="Lyrics provider URL"
+                    defaultValue={lyricsSettings.proxyUrl}
+                    onBlur={(e) => updateLyricsSetting({ proxyUrl: e.currentTarget.value.trim() })}
+                    placeholder="/api/lyrics"
+                />
+            ),
+            description: t('setting.lyricProxyUrl', {
+                context: 'description',
+                defaultValue:
+                    'Web player only. Absolute URL or same-origin path of the lyrics proxy (for example /api/lyrics, auto-detected when this is empty). LRCLib and SimpMusic work without a proxy',
+            }),
+            id: 'proxyUrl',
+            isHidden: isElectron(),
+            label: t('setting.lyricProxyUrl', { defaultValue: 'Lyrics provider URL' }),
         },
         {
             component: (
@@ -494,7 +509,6 @@ export const LyricsSettingsForm = ({ settingsKey }: LyricsSettingsFormProps) => 
                 context: 'description',
             }),
             id: 'enableNeteaseTranslation',
-            isHidden: !isElectron(),
             label: t('setting.neteaseTranslation'),
         },
     ];

@@ -23,6 +23,8 @@ COPY --chown=nginx:nginx ng.conf.template /etc/nginx/templates/default.conf.temp
 
 ENV SERVER_LOCK=false SERVER_NAME="" SERVER_TYPE="" SERVER_URL="" REMOTE_URL=""
 ENV LEGACY_AUTHENTICATION="" ANALYTICS_DISABLED="" PUBLIC_PATH="/"
+# Optional URL of a lyrics proxy (see WEB_LYRICS.md); enables NetEase and Genius
+ENV FS_LYRICS_PROXY_URL=""
 
 EXPOSE 9180
 CMD ["nginx", "-g", "daemon off;"]
