@@ -1,4 +1,6 @@
 {
+  "buildCommand": "bash build-web.sh",
+  "outputDirectory": "out/web",
   "headers": [
     {
       "source": "/",
