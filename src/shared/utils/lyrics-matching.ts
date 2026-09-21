@@ -56,8 +56,7 @@ const version = (name: string) =>
         )?.[0] ?? '';
 
 export function compareLyricCandidates<T extends LyricCandidate>(a: T, b: T): number {
-    const eligible = (item: InternetProviderLyricSearchResponse) =>
-        (item.score ?? 1) <= LYRIC_MATCH_THRESHOLD ? 1 : 0;
+    const eligible = (item: T) => ((item.score ?? 1) <= LYRIC_MATCH_THRESHOLD ? 1 : 0);
     return (
         eligible(b) - eligible(a) ||
         (b.lyricsQuality ?? -1) - (a.lyricsQuality ?? -1) ||
