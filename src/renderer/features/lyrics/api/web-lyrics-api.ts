@@ -1,4 +1,3 @@
-import Fuse, { FuseResult, IFuseOptions } from 'fuse.js';
 import isElectron from 'is-electron';
 
 import { useSettingsStore } from '/@/renderer/store';
@@ -9,10 +8,15 @@ import {
     LyricGetQuery,
     LyricSearchQuery,
     LyricSource,
-    LyricsResponse,
     QueueSong,
     Song,
 } from '/@/shared/types/domain-types';
+import {
+    compareLyricCandidates,
+    inspectLyricCandidates,
+    LYRIC_MATCH_THRESHOLD,
+    searchLyricCandidates,
+} from '/@/shared/utils/lyrics-matching';
 
 /**
  * Browser side remote lyrics lookups for the web build.
@@ -45,7 +49,6 @@ import {
  * a fallback if the proxy request fails.
  */
 
-const MATCH_THRESHOLD = 0.55;
 const REQUEST_TIMEOUT_MS = 8000;
 
 /** Sources whose own API is reachable from a browser. */
@@ -67,6 +70,7 @@ type NormalizedQuery = {
 
 type RawHit = {
     artist: string;
+    duration?: number;
     id: string;
     isSync: boolean | null;
     name: string;
@@ -114,6 +118,7 @@ function parseLrclibSearch(payload: unknown): RawHit[] {
 
         hits.push({
             artist: asString(song.artistName),
+            duration: typeof song.duration === 'number' ? song.duration : undefined,
             id: String(song.id),
             isSync: Boolean(song.syncedLyrics),
             name: asString(song.name) || asString(song.trackName),
@@ -143,6 +148,7 @@ function parseProxySearch(payload: unknown): RawHit[] {
 
         hits.push({
             artist: asString(hit.artist),
+            duration: typeof hit.duration === 'number' ? hit.duration : undefined,
             id: String(hit.id),
             isSync: hit.isSync === true ? true : hit.isSync === false ? false : null,
             name: asString(hit.name),
@@ -171,6 +177,7 @@ function parseSimpMusicSearch(payload: unknown): RawHit[] {
 
         hits.push({
             artist: asString(song.artistName),
+            duration: typeof song.duration === 'number' ? song.duration : undefined,
             id: String(song.videoId),
             isSync: Boolean(song.syncedLyrics),
             name: asString(song.songTitle),
@@ -224,9 +231,7 @@ const PROVIDERS: Record<LyricSource, WebProvider> = {
  * Same shape as window.api.lyrics.getRemoteLyricsByRemoteId in the Electron
  * build: the raw LRC (or plain text) for a single remote id.
  */
-export async function getRemoteLyricsByRemoteId(
-    params: LyricGetQuery,
-): Promise<LyricsResponse | null> {
+export async function getRemoteLyricsByRemoteId(params: LyricGetQuery): Promise<null | string> {
     const provider = PROVIDERS[params.remoteSource];
     if (!provider) return null;
 
@@ -236,7 +241,7 @@ export async function getRemoteLyricsByRemoteId(
 /**
  * Same shape as window.api.lyrics.getRemoteLyricsBySong in the Electron build:
  * search every enabled provider, rank the merged candidates with the same
- * threshold the main process uses (0.55), then fetch the winning lyrics.
+ * threshold the main process uses (0.55), then compare their lyric content.
  */
 export async function getRemoteLyricsBySong(
     song: QueueSong | Song,
@@ -245,32 +250,19 @@ export async function getRemoteLyricsBySong(
     const params = toSearchQuery(song);
     if (sources.length === 0 || (!params.name && !params.artist)) return null;
 
-    const settled = await Promise.allSettled(
-        sources.map((source) => searchProvider(PROVIDERS[source], params)),
-    );
-
-    const candidates: InternetProviderLyricSearchResponse[] = [];
-    for (const [index, source] of sources.entries()) {
-        const result = settled[index];
-        if (result?.status !== 'fulfilled') continue;
-        candidates.push(...result.value.map((hit) => ({ ...hit, source })));
-    }
-
-    if (candidates.length === 0) return null;
-
-    const bestMatch = orderSearchResults({ params, results: candidates })[0];
-    if (!bestMatch) return null;
-
-    // Score is 0-1 where 0 = perfect match, 1 = worst match
-    if ((bestMatch.score ?? 1) > MATCH_THRESHOLD) return null;
-
-    const lyrics = await getProviderLyrics(PROVIDERS[bestMatch.source], bestMatch.id);
-    if (!lyrics) return null;
+    const results = Object.values(await searchRemoteLyrics(params)).flat();
+    const bestMatch = results
+        .sort(compareLyricCandidates)
+        .find((hit) => (hit.score ?? 1) <= LYRIC_MATCH_THRESHOLD && (hit.lyricsQuality ?? 0) > 0);
+    if (!bestMatch?.lyrics) return null;
 
     return {
         artist: bestMatch.artist,
         id: bestMatch.id,
-        lyrics,
+        lyrics:
+            bestMatch.source !== LyricSource.NETEASE || getLyricsSettings().enableNeteaseTranslation
+                ? bestMatch.lyrics
+                : bestMatch.lyrics.replace(/_BREAK_[^\n]*/g, ''),
         name: bestMatch.name,
         source: bestMatch.source,
     };
@@ -388,21 +380,25 @@ export async function searchRemoteLyrics(
     };
 
     const settled = await Promise.allSettled(
-        sources.map((source) => searchProvider(PROVIDERS[source], query)),
+        sources.map((source) =>
+            searchLyricCandidates(query, async (searchQuery) => {
+                const hits = await searchProvider(PROVIDERS[source], {
+                    ...searchQuery,
+                    artist: searchQuery.artist ?? '',
+                    name: searchQuery.name ?? '',
+                });
+                return hits.map((hit) => ({ ...hit, source }));
+            }),
+        ),
     );
-
-    for (const [index, source] of sources.entries()) {
-        const result = settled[index];
-        if (result?.status !== 'fulfilled' || result.value.length === 0) continue;
-
-        const hits: InternetProviderLyricSearchResponse[] = result.value.map((hit) => ({
-            ...hit,
-            source,
-        }));
-
-        // Every provider ranks its own candidate list, like the desktop build.
-        grouped[source] = orderSearchResults({ params, results: hits });
-    }
+    const candidates = settled.flatMap((result) =>
+        result.status === 'fulfilled' ? result.value : [],
+    );
+    const inspected = await inspectLyricCandidates(
+        candidates.sort((a, b) => (a.score ?? 1) - (b.score ?? 1)),
+        (hit) => getProviderLyrics(PROVIDERS[hit.source], hit.id, true),
+    );
+    for (const hit of inspected) grouped[hit.source].push(hit);
 
     return grouped;
 }
@@ -442,11 +438,19 @@ function getLyricsSettings() {
     return useSettingsStore.getState().lyrics;
 }
 
-async function getProviderLyrics(provider: WebProvider, id: string): Promise<null | string> {
+const providerLyricsCache = new Map<string, { expires: number; value: Promise<null | string> }>();
+
+export async function resolveProxyUrl(): Promise<string> {
+    return getWebLyricsProxyUrl() || (await detectSameOriginProxy());
+}
+
+async function fetchProviderLyrics(
+    provider: WebProvider,
+    id: string,
+    includeTranslation: boolean,
+): Promise<null | string> {
     const proxyUrl = await resolveProxyUrl();
-    const translate =
-        provider.source === LyricSource.NETEASE &&
-        Boolean(getLyricsSettings().enableNeteaseTranslation);
+    const translate = provider.source === LyricSource.NETEASE && includeTranslation;
 
     if (proxyUrl) {
         try {
@@ -475,96 +479,24 @@ async function getProviderLyrics(provider: WebProvider, id: string): Promise<nul
     }
 }
 
-/**
- * Mirror of orderSearchResults() from
- * src/main/features/core/lyrics/shared.ts (Electron main process).
- *
- * The renderer is not allowed to import from the main process tree (see
- * docs/agents/architecture.md) and the web build has to rank candidates the
- * same way the desktop build does, so the function is duplicated here. Keep it
- * in sync when the main process version changes.
- */
-function orderSearchResults(args: {
-    params: LyricSearchQuery;
-    results: InternetProviderLyricSearchResponse[];
-}) {
-    const { params, results } = args;
-
-    const options: IFuseOptions<InternetProviderLyricSearchResponse> = {
-        fieldNormWeight: 1,
-        includeScore: true,
-        keys: [
-            { getFn: (song) => song.name, name: 'name', weight: 2 },
-            { getFn: (song) => song.artist, name: 'artist', weight: 2 },
-        ],
-        threshold: 0.6,
-    };
-
-    const fuse = new Fuse(results, options);
-
-    let searchResults: Array<FuseResult<InternetProviderLyricSearchResponse>>;
-
-    if (params.artist && params.name) {
-        const artistFuse = new Fuse(results, {
-            includeScore: true,
-            keys: [{ getFn: (song) => song.artist, name: 'artist' }],
-            threshold: 0.6,
-        });
-
-        const nameFuse = new Fuse(results, {
-            includeScore: true,
-            keys: [{ getFn: (song) => song.name, name: 'name' }],
-            threshold: 0.6,
-        });
-
-        const artistResults = artistFuse.search(params.artist);
-        const nameResults = nameFuse.search(params.name);
-
-        const artistScores = new Map(artistResults.map((r) => [r.item.id, r.score ?? 1]));
-        const nameScores = new Map(nameResults.map((r) => [r.item.id, r.score ?? 1]));
-
-        const combinedResults = new Map<string, FuseResult<InternetProviderLyricSearchResponse>>();
-
-        artistResults.forEach((result) => {
-            const nameScore = nameScores.get(result.item.id);
-            if (nameScore !== undefined) {
-                combinedResults.set(result.item.id, {
-                    ...result,
-                    score: Math.max(result.score ?? 1, nameScore),
-                });
-            }
-        });
-
-        nameResults.forEach((result) => {
-            if (!combinedResults.has(result.item.id)) {
-                const artistScore = artistScores.get(result.item.id);
-                if (artistScore !== undefined) {
-                    combinedResults.set(result.item.id, {
-                        ...result,
-                        score: Math.max(result.score ?? 1, artistScore),
-                    });
-                }
-            }
-        });
-
-        searchResults = Array.from(combinedResults.values());
-    } else {
-        searchResults = fuse.search({
-            ...(params.artist && { artist: params.artist }),
-            ...(params.name && { name: params.name }),
-        });
+async function getProviderLyrics(
+    provider: WebProvider,
+    id: string,
+    includeTranslation = Boolean(getLyricsSettings().enableNeteaseTranslation),
+): Promise<null | string> {
+    const key = JSON.stringify([getWebLyricsProxyUrl(), provider.source, id, includeTranslation]);
+    const cached = providerLyricsCache.get(key);
+    if (cached && cached.expires > Date.now()) return cached.value;
+    if (providerLyricsCache.size >= 50) {
+        const oldest = providerLyricsCache.keys().next().value;
+        if (oldest) providerLyricsCache.delete(oldest);
     }
-
-    return searchResults
-        .sort((a, b) => {
-            const aIsSync = a.item.isSync === true ? 1 : 0;
-            const bIsSync = b.item.isSync === true ? 1 : 0;
-
-            if (aIsSync !== bIsSync) return bIsSync - aIsSync;
-
-            return (a.score || 0) - (b.score || 0);
-        })
-        .map((result) => ({ ...result.item, score: result.score }));
+    const value = fetchProviderLyrics(provider, id, includeTranslation).then((lyrics) => {
+        if (!lyrics) providerLyricsCache.delete(key);
+        return lyrics;
+    });
+    providerLyricsCache.set(key, { expires: Date.now() + 300000, value });
+    return value;
 }
 
 async function proxyGet(
@@ -598,10 +530,6 @@ async function proxySearch(
     return parseProxySearch(await fetchJson(url));
 }
 
-async function resolveProxyUrl(): Promise<string> {
-    return getWebLyricsProxyUrl() || (await detectSameOriginProxy());
-}
-
 async function searchProvider(provider: WebProvider, query: NormalizedQuery): Promise<RawHit[]> {
     const proxyUrl = await resolveProxyUrl();
 
@@ -632,7 +560,7 @@ async function searchProvider(provider: WebProvider, query: NormalizedQuery): Pr
 }
 
 function toSearchQuery(song: QueueSong | Song): NormalizedQuery {
-    const artist = song.artists?.[0]?.name ?? song.artistName ?? '';
+    const artist = song.artists?.map((artist) => artist.name).join(', ') || song.artistName || '';
 
     return {
         album: song.album || song.name,

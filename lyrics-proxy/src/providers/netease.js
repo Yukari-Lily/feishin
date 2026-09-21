@@ -147,33 +147,22 @@ export function mergeLyrics(original, translated) {
     if (!original) return null;
     if (!translated) return original;
 
-    const lrcLineRegex = /\[(\d{2}:\d{2}\.\d{2,3})\](.*)/;
+    const lrcLineRegex = /\[(\d{1,}:\d{2}(?:\.\d{1,3})?)\](.*)/;
+    const timestampMs = (timestamp) => {
+        const [minutes, seconds] = timestamp.split(':');
+        return Math.round((Number(minutes) * 60 + Number(seconds)) * 1000);
+    };
     const translatedMap = new Map();
-
     for (const line of translated.split('\n')) {
         const match = line.match(lrcLineRegex);
-        if (!match) continue;
-        const text = match[2].trim();
-        if (text) translatedMap.set(match[1], text);
+        if (match?.[2].trim()) translatedMap.set(timestampMs(match[1]), match[2].trim());
     }
-
-    if (translatedMap.size === 0) return original;
-
-    return original
-        .split('\n')
-        .map((line) => {
-            const match = line.match(lrcLineRegex);
-            if (!match) return line;
-
-            const [, timestamp, rawText] = match;
-            const originalText = rawText.trim();
-            const translatedText = translatedMap.get(timestamp);
-
-            if (translatedText && originalText) {
-                return [`[${timestamp}]${originalText}`, translatedText].join('_BREAK_');
-            }
-
-            return line;
-        })
-        .join('\n');
+    return original.split('\n').map((line) => {
+        const match = line.match(lrcLineRegex);
+        if (!match) return line;
+        const translatedText = translatedMap.get(timestampMs(match[1]));
+        const originalText = match[2].trim();
+        if (!translatedText || !originalText || translatedText === originalText) return line;
+        return `[${match[1]}]${originalText}_BREAK_${translatedText}`;
+    }).join('\n');
 }

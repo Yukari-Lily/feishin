@@ -11,7 +11,6 @@ import {
 import { getLyricsBySongId as getGenius, getSearchResults as searchGenius } from './genius';
 import { getLyricsBySongId as getLrcLib, getSearchResults as searchLrcLib } from './lrclib';
 import { getLyricsBySongId as getNetease, getSearchResults as searchNetease } from './netease';
-import { orderSearchResults } from './shared';
 import {
     getLyricsBySongId as getSimpMusic,
     getSearchResults as searchSimpMusic,
@@ -19,6 +18,11 @@ import {
 
 import log from '/@/main/logger';
 import { Song } from '/@/shared/types/domain-types';
+import {
+    inspectLyricCandidates,
+    LYRIC_MATCH_THRESHOLD,
+    searchLyricCandidates,
+} from '/@/shared/utils/lyrics-matching';
 
 export enum LyricSource {
     GENIUS = 'Genius',
@@ -43,8 +47,11 @@ export type InternetProviderLyricResponse = {
 
 export type InternetProviderLyricSearchResponse = {
     artist: string;
+    duration?: number;
     id: string;
     isSync: boolean | null;
+    lyrics?: null | string;
+    lyricsQuality?: number;
     name: string;
     score?: number;
     source: LyricSource;
@@ -99,7 +106,10 @@ const searchAllSources = async (
     const sources = store.get('lyrics', []) as LyricSource[];
 
     const searchPromises = sources.map((source) =>
-        SEARCH_FETCHERS[source](params).then((searchResults) => ({ searchResults, source })),
+        searchLyricCandidates(
+            params,
+            async (query) => (await SEARCH_FETCHERS[source](query)) ?? [],
+        ).then((searchResults) => ({ searchResults, source })),
     );
 
     const settled = await Promise.allSettled(searchPromises);
@@ -114,13 +124,33 @@ const searchAllSources = async (
             log.error(`Error searching ${sources[index]} for lyrics:`, result.reason);
         }
     }
-    return allSearchResults;
+    return inspectLyricCandidates(
+        allSearchResults.sort((a, b) => (a.score ?? 1) - (b.score ?? 1)),
+        async (hit) => {
+            try {
+                return hit.source === LyricSource.NETEASE
+                    ? await getNetease(hit.id, true)
+                    : await GET_FETCHERS[hit.source](hit.id);
+            } catch (error) {
+                log.warn('Lyrics candidate lookup failed', { error, source: hit.source });
+                return null;
+            }
+        },
+    );
 };
 
 const getRemoteLyrics = async (song: Song) => {
     const sources = store.get('lyrics', []) as LyricSource[];
 
-    const cached = lyricCache.get(song.id.toString());
+    const cacheKey = JSON.stringify([
+        song._serverId,
+        song.id,
+        song.name,
+        song.artists,
+        sources,
+        store.get('enableNeteaseTranslation', false),
+    ]);
+    const cached = lyricCache.get(cacheKey);
 
     if (cached) {
         for (const source of sources) {
@@ -131,7 +161,7 @@ const getRemoteLyrics = async (song: Song) => {
 
     const params: LyricSearchQuery = {
         album: song.album || song.name,
-        artist: song.artists[0].name,
+        artist: song.artists?.map((artist) => artist.name).join(', ') || song.artistName || '',
         duration: song.duration / 1000.0,
         name: song.name,
     };
@@ -142,41 +172,20 @@ const getRemoteLyrics = async (song: Song) => {
         return null;
     }
 
-    const rankedResults = orderSearchResults({
-        params,
-        results: allSearchResults,
-    });
-
-    const bestMatch = rankedResults[0];
-
-    if (!bestMatch) {
-        return null;
-    }
-
-    // Score is 0-1 where 0 = perfect match, 1 = worst match
-    const matchThreshold = 0.55;
-    const matchScore = bestMatch.score ?? 1;
-
-    if (matchScore > matchThreshold) {
-        return null;
-    }
-
-    let lyricsFromSource: InternetProviderLyricResponse | null = null;
-
-    try {
-        const lyrics = await GET_FETCHERS[bestMatch.source](bestMatch.id);
-        if (lyrics) {
-            lyricsFromSource = {
-                artist: bestMatch.artist,
-                id: bestMatch.id,
-                lyrics,
-                name: bestMatch.name,
-                source: bestMatch.source,
-            };
-        }
-    } catch (error) {
-        log.error(`Error fetching lyrics from ${bestMatch.source}:`, error);
-    }
+    const bestMatch = allSearchResults.find(
+        (hit) => (hit.score ?? 1) <= LYRIC_MATCH_THRESHOLD && (hit.lyricsQuality ?? 0) > 0,
+    );
+    if (!bestMatch?.lyrics) return null;
+    const lyricsFromSource: InternetProviderLyricResponse = {
+        artist: bestMatch.artist,
+        id: bestMatch.id,
+        lyrics:
+            bestMatch.source !== LyricSource.NETEASE || store.get('enableNeteaseTranslation', false)
+                ? bestMatch.lyrics
+                : bestMatch.lyrics.replace(/_BREAK_[^\n]*/g, ''),
+        name: bestMatch.name,
+        source: bestMatch.source,
+    };
 
     if (lyricsFromSource) {
         const newResult = cached
@@ -193,7 +202,7 @@ const getRemoteLyrics = async (song: Song) => {
             }
         }
 
-        lyricCache.set(song.id.toString(), newResult);
+        lyricCache.set(cacheKey, newResult);
     }
 
     return lyricsFromSource;

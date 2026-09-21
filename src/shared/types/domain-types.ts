@@ -1403,8 +1403,11 @@ export type InternetProviderLyricResponse = {
 
 export type InternetProviderLyricSearchResponse = {
     artist: string;
+    duration?: number;
     id: string;
     isSync: boolean | null;
+    lyrics?: null | string;
+    lyricsQuality?: number;
     name: string;
     score?: number;
     source: LyricSource;

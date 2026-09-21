@@ -71,7 +71,10 @@ interface Song {
     transNames?: string[];
 }
 
-export async function getLyricsBySongId(songId: string): Promise<null | string> {
+export async function getLyricsBySongId(
+    songId: string,
+    enableTranslation = store.get('enableNeteaseTranslation', false) as boolean,
+): Promise<null | string> {
     let result: AxiosResponse<any, any>;
     try {
         result = await axios.get(LYRICS_URL, {
@@ -81,12 +84,12 @@ export async function getLyricsBySongId(songId: string): Promise<null | string> 
                 lv: '-1',
                 tv: '-1',
             },
+            timeout: 8000,
         });
     } catch (e) {
         log.error('NetEase lyrics request got an error!', e);
         return null;
     }
-    const enableTranslation = store.get('enableNeteaseTranslation', false) as boolean;
     const originalLrc = result.data.lrc?.lyric;
     if (!enableTranslation) {
         return originalLrc || null;
@@ -114,6 +117,7 @@ export async function getSearchResults(
                 s: searchQuery,
                 type: '1',
             },
+            timeout: 8000,
         });
     } catch (e) {
         log.error('NetEase search request got an error!', e);
@@ -129,6 +133,7 @@ export async function getSearchResults(
 
         return {
             artist,
+            duration: song.duration / 1000,
             id: String(song.id),
             isSync: null,
             name: song.name,
@@ -183,43 +188,25 @@ function mergeLyrics(original: string | undefined, translated: string | undefine
         return original;
     }
 
-    const lrcLineRegex = /\[(\d{2}:\d{2}\.\d{2,3})\](.*)/;
-    const translatedMap = new Map<string, string>();
-
-    // Parse the translated LRC and store it in a Map for efficient timestamp-based lookups.
-    translated.split('\n').forEach((line) => {
+    const lrcLineRegex = /\[(\d{1,}:\d{2}(?:\.\d{1,3})?)\](.*)/;
+    const timestampMs = (timestamp: string) => {
+        const [minutes, seconds] = timestamp.split(':');
+        return Math.round((Number(minutes) * 60 + Number(seconds)) * 1000);
+    };
+    const translatedMap = new Map<number, string>();
+    for (const line of translated.split('\n')) {
         const match = line.match(lrcLineRegex);
-        if (match) {
-            const timestamp = match[1];
-            const text = match[2].trim();
-            if (text) {
-                translatedMap.set(timestamp, text);
-            }
-        }
-    });
-
-    if (translatedMap.size === 0) {
-        return original;
+        if (match?.[2].trim()) translatedMap.set(timestampMs(match[1]), match[2].trim());
     }
-
-    // Iterate through each line of the original LRC. If a translation exists for the same timestamp, append the translated text after the original text.
-    const finalLines = original.split('\n').map((line) => {
-        const match = line.match(lrcLineRegex);
-
-        if (match) {
-            const timestamp = match[1];
+    return original
+        .split('\n')
+        .map((line) => {
+            const match = line.match(lrcLineRegex);
+            if (!match) return line;
+            const translatedText = translatedMap.get(timestampMs(match[1]));
             const originalText = match[2].trim();
-            const translatedText = translatedMap.get(timestamp);
-
-            if (translatedText && originalText) {
-                // Append and add a break delimiter to separate the original and translated text
-                return [`[${timestamp}]${originalText}`, translatedText].join('_BREAK_');
-            }
-        }
-
-        // If no match or no translation is found, return the original line unchanged.
-        return line;
-    });
-
-    return finalLines.join('\n');
+            if (!translatedText || !originalText || translatedText === originalText) return line;
+            return `[${match[1]}]${originalText}_BREAK_${translatedText}`;
+        })
+        .join('\n');
 }

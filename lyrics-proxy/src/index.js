@@ -26,6 +26,7 @@
  */
 
 import { PROVIDERS, PROVIDER_SLUGS, resolveEnabledSources } from './providers/index.js';
+import { readTranslationLines, translateLines, translationEnabled } from './translation.js';
 
 const VERSION = '1.0.0';
 const DEFAULT_CACHE_TTL_SECONDS = 3600;
@@ -34,7 +35,7 @@ const MAX_CACHE_TTL_SECONDS = 86400;
 function corsHeaders(env) {
     return {
         'Access-Control-Allow-Headers': 'Content-Type',
-        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
         'Access-Control-Allow-Origin': env?.ALLOWED_ORIGIN || '*',
         'Access-Control-Max-Age': '86400',
     };
@@ -179,6 +180,19 @@ export default {
             return new Response(null, { headers: corsHeaders(env), status: 204 });
         }
 
+        if (path === '/translate' && request.method === 'POST') {
+            if (!translationEnabled(env)) return json({ lines: null }, { env });
+            let lines;
+            try {
+                lines = await readTranslationLines(request);
+            } catch {
+                return badRequest('expected up to 300 lyric lines (20,000 characters)', env);
+            }
+            const response = json({ lines: await translateLines(lines, env) }, { env });
+            response.headers.set('Cache-Control', 'no-store');
+            return response;
+        }
+
         if (request.method !== 'GET' && request.method !== 'HEAD') {
             return json({ error: 'method not allowed' }, { env, status: 405 });
         }
@@ -187,6 +201,7 @@ export default {
             return json(
                 {
                     cache: getCache() ? 'edge' : 'disabled',
+                    aiTranslation: translationEnabled(env),
                     ok: true,
                     service: 'feishin-lyrics-worker',
                     sources: resolveEnabledSources(env),
@@ -206,6 +221,7 @@ export default {
                         '/get': 'GET /get?source=<slug>&id=<remoteId>[&translate=1]',
                         '/health': 'GET /health',
                         '/search': 'GET /search?source=<slug>&name=&artist=&album=&duration=',
+                        '/translate': 'POST /translate { lines: string[] }',
                     },
                     service: 'feishin-lyrics-worker',
                     sources: resolveEnabledSources(env).map((slug) => ({

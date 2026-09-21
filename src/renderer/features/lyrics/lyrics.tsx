@@ -23,6 +23,7 @@ import {
     lyricsHasWordCues,
 } from '/@/renderer/features/lyrics/api/lyrics-utils';
 import { openLyricsExportModal } from '/@/renderer/features/lyrics/components/lyrics-export-form';
+import { useDeploymentTranslation } from '/@/renderer/features/lyrics/hooks/use-deployment-translation';
 import {
     useFuriganaLyrics,
     useRomajiLyrics,
@@ -160,6 +161,17 @@ export const Lyrics = ({ fadeOutNoLyricsMessage = true, settingsKey = 'default' 
         return computeSelectedFromResult(data, preferLocalLyrics, indexToUse);
     }, [data, indexToUse, preferLocalLyrics]);
 
+    const deploymentTranslation = useDeploymentTranslation(
+        lyrics?.lyrics,
+        !isLyricsDisabled &&
+            !isWaitingToFetchLyrics &&
+            !(
+                !lyrics?.remote &&
+                Array.isArray(data?.local) &&
+                data.local.some((layer) => layer.synced && layer.kind === 'translation')
+            ),
+    );
+
     const { data: furiganaConvertedLyrics } = useFuriganaLyrics(lyrics?.lyrics, !!enableFurigana);
     const { data: romajiConvertedLyrics, isFetching: isFetchingRomaji } = useRomajiLyrics(
         lyrics?.lyrics,
@@ -295,10 +307,12 @@ export const Lyrics = ({ fadeOutNoLyricsMessage = true, settingsKey = 'default' 
             settingsKey,
             syncedRomajiLyrics: shouldGenerateSyncedRomaji ? (syncedRomajiLyrics ?? null) : null,
             translatedLyrics:
-                showTranslation && !translationLyricsOverlay ? translatedLyrics : null,
+                deploymentTranslation ??
+                (showTranslation && !translationLyricsOverlay ? translatedLyrics : null),
             translationLyrics: translationLyricsOverlay,
         };
     }, [
+        deploymentTranslation,
         displayLyrics,
         displayOffsetMs,
         enableRomaji,
@@ -564,7 +578,10 @@ export const Lyrics = ({ fadeOutNoLyricsMessage = true, settingsKey = 'default' 
                                                 : null
                                         }
                                         settingsKey={settingsKey}
-                                        translatedLyrics={showTranslation ? translatedLyrics : null}
+                                        translatedLyrics={
+                                            deploymentTranslation ??
+                                            (showTranslation ? translatedLyrics : null)
+                                        }
                                     />
                                 )}
                             </motion.div>

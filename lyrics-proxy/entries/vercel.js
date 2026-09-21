@@ -13,4 +13,8 @@ export function GET(request) {
 
 export function OPTIONS(request) {
     return worker.fetch(toWorkerRequest(request), env, {});
-}
+}
+
+export function POST(request) {
+    return worker.fetch(toWorkerRequest(request), env, {});
+}

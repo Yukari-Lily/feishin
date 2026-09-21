@@ -1,7 +1,6 @@
 import { closeAllModals, openModal } from '@mantine/modals';
 import { useQuery } from '@tanstack/react-query';
 import clsx from 'clsx';
-import orderBy from 'lodash/orderBy';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -11,6 +10,7 @@ import i18n from '/@/i18n/i18n';
 import { lyricsQueries } from '/@/renderer/features/lyrics/api/lyrics-api';
 import { lyricsHasWordCues } from '/@/renderer/features/lyrics/api/lyrics-utils';
 import { openLyricsExportModal } from '/@/renderer/features/lyrics/components/lyrics-export-form';
+import { useDeploymentTranslation } from '/@/renderer/features/lyrics/hooks/use-deployment-translation';
 import { SynchronizedKaraokeLyrics } from '/@/renderer/features/lyrics/synchronized-karaoke-lyrics';
 import {
     SynchronizedLyrics,
@@ -39,6 +39,7 @@ import {
     LyricSource,
     LyricsOverride,
 } from '/@/shared/types/domain-types';
+import { compareLyricCandidates } from '/@/shared/utils/lyrics-matching';
 
 interface SearchResultProps {
     data: InternetProviderLyricSearchResponse;
@@ -50,7 +51,7 @@ const SearchResult = ({ data, isSelected, onClick }: SearchResultProps) => {
     const { artist, id, isSync, name, score, source } = data;
 
     const percentageScore = useMemo(() => {
-        if (!score) return 0;
+        if (score == null) return 0;
         return ((1 - score) * 100).toFixed(2);
     }, [score]);
 
@@ -136,6 +137,8 @@ export const LyricsSearchForm = ({ artist, name, onSearchOverride }: LyricSearch
         }),
     );
 
+    const previewTranslation = useDeploymentTranslation(previewData);
+
     const searchResults = useMemo(() => {
         if (!data) return [];
 
@@ -144,7 +147,7 @@ export const LyricsSearchForm = ({ artist, name, onSearchOverride }: LyricSearch
             (data[key as keyof typeof data] || []).forEach((result) => results.push(result));
         });
 
-        const scoredResults = orderBy(results, ['score'], ['asc']);
+        const scoredResults = results.sort(compareLyricCandidates);
 
         return scoredResults;
     }, [data]);
@@ -259,6 +262,7 @@ export const LyricsSearchForm = ({ artist, name, onSearchOverride }: LyricSearch
                                     lyricsHasWordCues(previewData) ? (
                                         <SynchronizedKaraokeLyrics
                                             preview
+                                            translatedLyrics={previewTranslation}
                                             {...({
                                                 artist: selectedResult.artist,
                                                 lyrics: previewData,
@@ -270,6 +274,7 @@ export const LyricsSearchForm = ({ artist, name, onSearchOverride }: LyricSearch
                                     ) : (
                                         <SynchronizedLyrics
                                             preview
+                                            translatedLyrics={previewTranslation}
                                             {...({
                                                 artist: selectedResult.artist,
                                                 lyrics: previewData,
@@ -282,6 +287,7 @@ export const LyricsSearchForm = ({ artist, name, onSearchOverride }: LyricSearch
                                 ) : (
                                     <UnsynchronizedLyrics
                                         preview
+                                        translatedLyrics={previewTranslation}
                                         {...({
                                             artist: selectedResult.artist,
                                             lyrics: previewData,
