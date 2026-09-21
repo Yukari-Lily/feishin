@@ -633,6 +633,7 @@ const LyricsDisplaySettingsSchema = z.object({
 const LyricsSettingsSchema = z.object({
     alignment: z.enum(['center', 'left', 'right']),
     delayMs: z.number(),
+    enableAiTranslation: z.boolean().default(true),
     enableAutoTranslation: z.boolean(),
     enableFurigana: z.boolean().optional(),
     enableNeteaseTranslation: z.boolean(),
@@ -2046,6 +2047,7 @@ const initialState: SettingsState = {
     lyrics: {
         alignment: 'left',
         delayMs: 0,
+        enableAiTranslation: true,
         enableAutoTranslation: false,
         enableFurigana: false,
         enableNeteaseTranslation: false,

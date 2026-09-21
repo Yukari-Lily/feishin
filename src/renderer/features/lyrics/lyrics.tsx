@@ -66,6 +66,7 @@ export const Lyrics = ({ fadeOutNoLyricsMessage = true, settingsKey = 'default' 
 
     const {
         delayMs,
+        enableAiTranslation,
         enableAutoTranslation,
         enableFurigana,
         enableRomaji,
@@ -163,7 +164,13 @@ export const Lyrics = ({ fadeOutNoLyricsMessage = true, settingsKey = 'default' 
 
     const deploymentTranslation = useDeploymentTranslation(
         lyrics?.lyrics,
-        !isLyricsDisabled &&
+        {
+            artist: currentSong?.artists?.map((artist) => artist.name).join(', '),
+            hasExistingTranslation: lyrics?.hasTranslation,
+            name: currentSong?.name,
+        },
+        enableAiTranslation &&
+            !isLyricsDisabled &&
             !isWaitingToFetchLyrics &&
             !(
                 !lyrics?.remote &&

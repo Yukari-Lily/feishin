@@ -10,7 +10,6 @@ import i18n from '/@/i18n/i18n';
 import { lyricsQueries } from '/@/renderer/features/lyrics/api/lyrics-api';
 import { lyricsHasWordCues } from '/@/renderer/features/lyrics/api/lyrics-utils';
 import { openLyricsExportModal } from '/@/renderer/features/lyrics/components/lyrics-export-form';
-import { useDeploymentTranslation } from '/@/renderer/features/lyrics/hooks/use-deployment-translation';
 import { SynchronizedKaraokeLyrics } from '/@/renderer/features/lyrics/synchronized-karaoke-lyrics';
 import {
     SynchronizedLyrics,
@@ -137,8 +136,6 @@ export const LyricsSearchForm = ({ artist, name, onSearchOverride }: LyricSearch
         }),
     );
 
-    const previewTranslation = useDeploymentTranslation(previewData);
-
     const searchResults = useMemo(() => {
         if (!data) return [];
 
@@ -156,6 +153,7 @@ export const LyricsSearchForm = ({ artist, name, onSearchOverride }: LyricSearch
         if (selectedResult && onSearchOverride) {
             onSearchOverride({
                 artist: selectedResult.artist,
+                hasTranslation: selectedResult.hasTranslation,
                 id: selectedResult.id,
                 name: selectedResult.name,
                 remote: true,
@@ -262,7 +260,6 @@ export const LyricsSearchForm = ({ artist, name, onSearchOverride }: LyricSearch
                                     lyricsHasWordCues(previewData) ? (
                                         <SynchronizedKaraokeLyrics
                                             preview
-                                            translatedLyrics={previewTranslation}
                                             {...({
                                                 artist: selectedResult.artist,
                                                 lyrics: previewData,
@@ -274,7 +271,6 @@ export const LyricsSearchForm = ({ artist, name, onSearchOverride }: LyricSearch
                                     ) : (
                                         <SynchronizedLyrics
                                             preview
-                                            translatedLyrics={previewTranslation}
                                             {...({
                                                 artist: selectedResult.artist,
                                                 lyrics: previewData,
@@ -287,7 +283,6 @@ export const LyricsSearchForm = ({ artist, name, onSearchOverride }: LyricSearch
                                 ) : (
                                     <UnsynchronizedLyrics
                                         preview
-                                        translatedLyrics={previewTranslation}
                                         {...({
                                             artist: selectedResult.artist,
                                             lyrics: previewData,

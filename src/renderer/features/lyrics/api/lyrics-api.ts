@@ -105,6 +105,7 @@ export function computeSelectedFromResult(
     if (overrideSelection && overrideData) {
         const overrideLyrics: FullLyricsMetadata = {
             artist: overrideSelection.artist,
+            hasTranslation: overrideSelection.hasTranslation,
             lyrics: overrideData,
             name: overrideSelection.name,
             offsetMs: selectedOffsetMs,

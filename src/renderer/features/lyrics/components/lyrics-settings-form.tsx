@@ -511,6 +511,19 @@ export const LyricsSettingsForm = ({ settingsKey }: LyricsSettingsFormProps) => 
             id: 'enableNeteaseTranslation',
             label: t('setting.neteaseTranslation'),
         },
+        {
+            component: (
+                <ListConfigBooleanControl
+                    onChange={(value) => updateLyricsSetting({ enableAiTranslation: value })}
+                    value={lyricsSettings.enableAiTranslation}
+                />
+            ),
+            description: t('setting.aiTranslation', {
+                context: 'description',
+            }),
+            id: 'enableAiTranslation',
+            label: t('setting.aiTranslation'),
+        },
     ];
 
     const translationSettings = [

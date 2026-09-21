@@ -7,6 +7,7 @@ export const LYRIC_MATCH_THRESHOLD = 0.55;
 type LyricCandidate = {
     artist: string;
     duration?: number;
+    hasTranslation?: boolean;
     id: string;
     isSync: boolean | null;
     lyrics?: null | string;
@@ -90,6 +91,7 @@ export async function inspectLyricCandidates<T extends LyricCandidate>(
             const lyrics = await get(hit);
             return {
                 ...hit,
+                hasTranslation: lyrics?.includes('_BREAK_') ?? hit.hasTranslation,
                 isSync: lyrics ? /\[\d+:\d+/.test(lyrics) : hit.isSync,
                 lyrics,
                 lyricsQuality: getLyricsQuality(lyrics),

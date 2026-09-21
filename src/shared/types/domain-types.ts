@@ -1395,6 +1395,7 @@ export type GetScanStatusResponse = ScanStatus;
 
 export type InternetProviderLyricResponse = {
     artist: string;
+    hasTranslation?: boolean;
     id: string;
     lyrics: string;
     name: string;
@@ -1404,6 +1405,7 @@ export type InternetProviderLyricResponse = {
 export type InternetProviderLyricSearchResponse = {
     artist: string;
     duration?: number;
+    hasTranslation?: boolean;
     id: string;
     isSync: boolean | null;
     lyrics?: null | string;

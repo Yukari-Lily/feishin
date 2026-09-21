@@ -39,6 +39,7 @@ export type FullLyricsMetadata = Omit<InternetProviderLyricResponse, 'id' | 'lyr
 
 export type InternetProviderLyricResponse = {
     artist: string;
+    hasTranslation?: boolean;
     id: string;
     lyrics: string;
     name: string;
@@ -48,6 +49,7 @@ export type InternetProviderLyricResponse = {
 export type InternetProviderLyricSearchResponse = {
     artist: string;
     duration?: number;
+    hasTranslation?: boolean;
     id: string;
     isSync: boolean | null;
     lyrics?: null | string;
@@ -178,6 +180,7 @@ const getRemoteLyrics = async (song: Song) => {
     if (!bestMatch?.lyrics) return null;
     const lyricsFromSource: InternetProviderLyricResponse = {
         artist: bestMatch.artist,
+        hasTranslation: bestMatch.hasTranslation,
         id: bestMatch.id,
         lyrics:
             bestMatch.source !== LyricSource.NETEASE || store.get('enableNeteaseTranslation', false)
@@ -225,13 +228,18 @@ const searchRemoteLyrics = async (params: LyricSearchQuery) => {
 
 const getRemoteLyricsById = async (params: LyricGetQuery): Promise<null | string> => {
     const { remoteSongId, remoteSource } = params;
-    const response = await GET_FETCHERS[remoteSource](remoteSongId);
+    const response =
+        remoteSource === LyricSource.NETEASE
+            ? await getNetease(remoteSongId, true)
+            : await GET_FETCHERS[remoteSource](remoteSongId);
 
     if (!response) {
         return null;
     }
 
-    return response;
+    return remoteSource === LyricSource.NETEASE && !store.get('enableNeteaseTranslation', false)
+        ? response.replace(/_BREAK_[^\n]*/g, '')
+        : response;
 };
 
 ipcMain.handle('lyric-by-song', async (_event, song: any) => {

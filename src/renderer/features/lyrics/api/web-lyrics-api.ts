@@ -71,9 +71,13 @@ type NormalizedQuery = {
 type RawHit = {
     artist: string;
     duration?: number;
+    hasTranslation?: boolean;
     id: string;
     isSync: boolean | null;
+    lyrics?: null | string;
+    lyricsQuality?: number;
     name: string;
+    score?: number;
 };
 
 type WebProvider = {
@@ -235,7 +239,15 @@ export async function getRemoteLyricsByRemoteId(params: LyricGetQuery): Promise<
     const provider = PROVIDERS[params.remoteSource];
     if (!provider) return null;
 
-    return getProviderLyrics(provider, params.remoteSongId);
+    const lyrics = await getProviderLyrics(
+        provider,
+        params.remoteSongId,
+        provider.source === LyricSource.NETEASE ? true : undefined,
+    );
+    if (!lyrics) return null;
+    return provider.source === LyricSource.NETEASE && !getLyricsSettings().enableNeteaseTranslation
+        ? lyrics.replace(/_BREAK_[^\n]*/g, '')
+        : lyrics;
 }
 
 /**
@@ -258,6 +270,7 @@ export async function getRemoteLyricsBySong(
 
     return {
         artist: bestMatch.artist,
+        hasTranslation: bestMatch.hasTranslation,
         id: bestMatch.id,
         lyrics:
             bestMatch.source !== LyricSource.NETEASE || getLyricsSettings().enableNeteaseTranslation

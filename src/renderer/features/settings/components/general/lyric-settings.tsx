@@ -153,6 +153,21 @@ export const LyricSettings = memo(() => {
         },
         {
             control: (
+                <Switch
+                    aria-label="Enable AI lyrics translation"
+                    defaultChecked={settings.enableAiTranslation}
+                    onChange={(e) =>
+                        updateSetting({ enableAiTranslation: e.currentTarget.checked })
+                    }
+                />
+            ),
+            description: t('setting.aiTranslation', {
+                context: 'description',
+            }),
+            title: t('setting.aiTranslation'),
+        },
+        {
+            control: (
                 <NumberInput
                     defaultValue={settings.delayMs}
                     onBlur={(e) => {

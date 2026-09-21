@@ -62,9 +62,11 @@ not `VITE_*` settings or values to inject into browser `settings.js`. The health
 response advertises only whether translation is enabled. No client API key is needed.
 
 The player displays original lyrics immediately, then adds translated lines in the
-background. This also works for selected local lyrics and manual search previews.
-Existing inline translations or a selected local song's structured translation layer
-skip AI. The original timestamps and karaoke word cues are preserved. Model output
+background when the **AI lyrics translation** switch is enabled. The switch is on by
+default and sits below **NetEase translations** in both Lyrics settings panels. This
+also works for selected local lyrics and manual search previews. Existing inline
+translations or a selected local song's structured translation layer skip AI.
+The original timestamps and karaoke word cues are preserved. Model output
 must have exactly one nonempty translation per submitted line; failures keep the
 original display. Translation augments the display and does not write music files
 or lyrics back to the music server.

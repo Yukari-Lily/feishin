@@ -182,13 +182,18 @@ export default {
 
         if (path === '/translate' && request.method === 'POST') {
             if (!translationEnabled(env)) return json({ lines: null }, { env });
-            let lines;
+            let translationRequest;
             try {
-                lines = await readTranslationLines(request);
+                translationRequest = await readTranslationLines(request);
             } catch {
                 return badRequest('expected up to 300 lyric lines (20,000 characters)', env);
             }
-            const response = json({ lines: await translateLines(lines, env) }, { env });
+            const response = json(
+                {
+                    lines: await translateLines(translationRequest.lines, env, translationRequest),
+                },
+                { env },
+            );
             response.headers.set('Cache-Control', 'no-store');
             return response;
         }

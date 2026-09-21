@@ -11,8 +11,15 @@ import {
 import { logger } from '/@/renderer/utils/logger';
 import { getLyricsQuality, lyricContentLines } from '/@/shared/utils/lyrics-matching';
 
+type TranslationContext = {
+    artist?: string;
+    hasExistingTranslation?: boolean;
+    name?: string;
+};
+
 export function useDeploymentTranslation(
     lyrics: LyricsResponse | null | undefined,
+    context: TranslationContext = {},
     enabled = true,
 ) {
     const lines = useMemo(
@@ -21,7 +28,11 @@ export function useDeploymentTranslation(
         [lyrics],
     );
     const text = lines.join('\n');
-    const canTranslate = enabled && !text.includes('_BREAK_') && getLyricsQuality(text) > 0;
+    const canTranslate =
+        enabled &&
+        !context.hasExistingTranslation &&
+        !text.includes('_BREAK_') &&
+        getLyricsQuality(text) > 0;
     const { data: proxy } = useQuery({
         enabled: canTranslate,
         queryFn: async () => {
@@ -57,7 +68,11 @@ export function useDeploymentTranslation(
         queryFn: async ({ signal }) => {
             try {
                 const response = await fetch(`${proxy}/translate`, {
-                    body: JSON.stringify({ lines: content }),
+                    body: JSON.stringify({
+                        artist: context.artist,
+                        lines: content,
+                        name: context.name,
+                    }),
                     headers: { 'Content-Type': 'application/json' },
                     method: 'POST',
                     signal: AbortSignal.any([signal, AbortSignal.timeout(30000)]),
@@ -85,7 +100,7 @@ export function useDeploymentTranslation(
                 return null;
             }
         },
-        queryKey: queryKeys.songs.lyricsTranslation(proxy ?? '', content),
+        queryKey: queryKeys.songs.lyricsTranslation(proxy ?? '', content, context),
         retry: false,
         staleTime: (query) => (query.state.data === null ? 60000 : 86400000),
     });

@@ -265,6 +265,8 @@
         "font": "字体",
         "neteaseTranslation": "启用网易云歌词翻译",
         "neteaseTranslation_description": "启用后，在获取歌词时将包含并显示网易云音乐提供的翻译（如果存在）",
+        "aiTranslation_description": "启用后，网易云没有双语歌词时使用部署环境中的 AI 翻译歌词",
+        "aiTranslation": "启用 AI 歌词翻译",
         "crossfadeDuration_description": "设置淡入淡出持续时间",
         "audioDevice": "音频设备",
         "enableRemote": "启用远程控制服务器",

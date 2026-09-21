@@ -941,6 +941,8 @@
         "discordUpdateInterval_description": "The time in seconds between each update (minimum 15 seconds)",
         "enableAutoTranslation_description": "Enable translation automatically when lyrics are loaded",
         "enableAutoTranslation": "Enable auto translation",
+        "aiTranslation_description": "When enabled, uses the deployment AI to translate lyrics when NetEase has no bilingual lyrics",
+        "aiTranslation": "Enable AI lyrics translation",
         "enableFurigana_description": "Display pronunciation guides (furigana) over Japanese kanji lyrics",
         "enableFurigana": "Enable furigana generation",
         "enableRomaji_description": "Display a romaji pronunciation line under Japanese lyrics",
