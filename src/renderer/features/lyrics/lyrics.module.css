@@ -85,7 +85,7 @@
 
 .translation-status {
     position: absolute;
-    bottom: 3rem;
+    top: 0.5rem;
     z-index: 50;
     width: 100%;
     text-align: center;
