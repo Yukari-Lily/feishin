@@ -626,6 +626,7 @@
                 "useImageAspectRatio": "Use image aspect ratio"
             },
             "lyrics": "Lyrics",
+            "aiTranslationInProgress": "AI is translating lyrics…",
             "lyricLayers": "Lyric layers",
             "lyricLanguage": "Language",
             "showPronunciation": "Pronunciation",

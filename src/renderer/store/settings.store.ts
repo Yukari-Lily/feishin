@@ -636,7 +636,7 @@ const LyricsSettingsSchema = z.object({
     enableAiTranslation: z.boolean().default(true),
     enableAutoTranslation: z.boolean(),
     enableFurigana: z.boolean().optional(),
-    enableNeteaseTranslation: z.boolean(),
+    enableNeteaseTranslation: z.boolean().default(true),
     enableRomaji: z.boolean().optional(),
     fetch: z.boolean(),
     follow: z.boolean(),
@@ -2050,7 +2050,7 @@ const initialState: SettingsState = {
         enableAiTranslation: true,
         enableAutoTranslation: false,
         enableFurigana: false,
-        enableNeteaseTranslation: false,
+        enableNeteaseTranslation: true,
         enableRomaji: false,
         fetch: true,
         follow: true,
@@ -2935,10 +2935,15 @@ export const useSettingsStore = createWithEqualityFn<SettingsSlice>()(
                     });
                 }
 
+                if (version < 35) {
+                    state.lyrics.enableAiTranslation = true;
+                    state.lyrics.enableNeteaseTranslation = true;
+                }
+
                 return persistedState;
             },
             name: 'store_settings',
-            version: 34,
+            version: 35,
         },
     ),
 );

@@ -83,6 +83,15 @@
     transition: opacity 0.2s ease;
 }
 
+.translation-status {
+    position: absolute;
+    bottom: 3rem;
+    z-index: 50;
+    width: 100%;
+    text-align: center;
+    pointer-events: none;
+}
+
 .lyrics-container:hover .settings-icon {
     opacity: 1;
 }

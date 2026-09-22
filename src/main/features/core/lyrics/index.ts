@@ -150,7 +150,7 @@ const getRemoteLyrics = async (song: Song) => {
         song.name,
         song.artists,
         sources,
-        store.get('enableNeteaseTranslation', false),
+        store.get('enableNeteaseTranslation', true),
     ]);
     const cached = lyricCache.get(cacheKey);
 
@@ -183,7 +183,7 @@ const getRemoteLyrics = async (song: Song) => {
         hasTranslation: bestMatch.hasTranslation,
         id: bestMatch.id,
         lyrics:
-            bestMatch.source !== LyricSource.NETEASE || store.get('enableNeteaseTranslation', false)
+            bestMatch.source !== LyricSource.NETEASE || store.get('enableNeteaseTranslation', true)
                 ? bestMatch.lyrics
                 : bestMatch.lyrics.replace(/_BREAK_[^\n]*/g, ''),
         name: bestMatch.name,
@@ -237,7 +237,7 @@ const getRemoteLyricsById = async (params: LyricGetQuery): Promise<null | string
         return null;
     }
 
-    return remoteSource === LyricSource.NETEASE && !store.get('enableNeteaseTranslation', false)
+    return remoteSource === LyricSource.NETEASE && !store.get('enableNeteaseTranslation', true)
         ? response.replace(/_BREAK_[^\n]*/g, '')
         : response;
 };

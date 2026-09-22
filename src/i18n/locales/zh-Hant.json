@@ -276,6 +276,7 @@
                 "playerItemAlignment": "播放器項目對齊方式"
             },
             "lyrics": "歌詞",
+            "aiTranslationInProgress": "正在使用 AI 翻譯歌詞…",
             "related": "相關歌曲",
             "upNext": "即將播放",
             "visualizer": "視覺化",

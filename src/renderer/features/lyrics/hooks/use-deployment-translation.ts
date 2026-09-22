@@ -1,7 +1,7 @@
 import type { LyricsResponse } from '/@/shared/types/domain-types';
 
-import { useQuery } from '@tanstack/react-query';
-import { useMemo } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useMemo } from 'react';
 
 import { queryKeys } from '/@/renderer/api/query-keys';
 import {
@@ -22,6 +22,7 @@ export function useDeploymentTranslation(
     context: TranslationContext = {},
     enabled = true,
 ) {
+    const queryClient = useQueryClient();
     const lines = useMemo(
         () =>
             Array.isArray(lyrics) ? lyrics.map((line) => line.text) : (lyrics ?? '').split('\n'),
@@ -57,7 +58,15 @@ export function useDeploymentTranslation(
         () => lines.filter((line) => lyricContentLines(line).length > 0),
         [lines],
     );
-    const { data } = useQuery({
+    const translationContext = useMemo(
+        () => ({ artist: context.artist, name: context.name }),
+        [context.artist, context.name],
+    );
+    const translationQueryKey = useMemo(
+        () => queryKeys.songs.lyricsTranslation(proxy ?? '', content, translationContext),
+        [content, proxy, translationContext],
+    );
+    const { data, isFetching } = useQuery({
         enabled:
             canTranslate &&
             !!proxy &&
@@ -69,9 +78,9 @@ export function useDeploymentTranslation(
             try {
                 const response = await fetch(`${proxy}/translate`, {
                     body: JSON.stringify({
-                        artist: context.artist,
+                        artist: translationContext.artist,
                         lines: content,
-                        name: context.name,
+                        name: translationContext.name,
                     }),
                     headers: { 'Content-Type': 'application/json' },
                     method: 'POST',
@@ -100,17 +109,28 @@ export function useDeploymentTranslation(
                 return null;
             }
         },
-        queryKey: queryKeys.songs.lyricsTranslation(proxy ?? '', content, context),
+        queryKey: translationQueryKey,
         retry: false,
         staleTime: (query) => (query.state.data === null ? 60000 : 86400000),
     });
-    if (!canTranslate || !proxy || !data) return null;
+
+    useEffect(() => {
+        if (canTranslate) return;
+        void queryClient.cancelQueries({ exact: true, queryKey: translationQueryKey });
+    }, [canTranslate, queryClient, translationQueryKey]);
+
+    if (!canTranslate || !proxy || !data) {
+        return { isTranslating: canTranslate && !!proxy && isFetching, translation: null };
+    }
     let index = 0;
-    return lines
-        .map((line) => {
-            if (!lyricContentLines(line).length) return '';
-            const translated = data[index++];
-            return translated === line.trim() ? '' : translated;
-        })
-        .join('\n');
+    return {
+        isTranslating: isFetching,
+        translation: lines
+            .map((line) => {
+                if (!lyricContentLines(line).length) return '';
+                const translated = data[index++];
+                return translated === line.trim() ? '' : translated;
+            })
+            .join('\n'),
+    };
 }

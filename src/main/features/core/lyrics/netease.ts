@@ -73,7 +73,7 @@ interface Song {
 
 export async function getLyricsBySongId(
     songId: string,
-    enableTranslation = store.get('enableNeteaseTranslation', false) as boolean,
+    enableTranslation = store.get('enableNeteaseTranslation', true) as boolean,
 ): Promise<null | string> {
     let result: AxiosResponse<any, any>;
     try {

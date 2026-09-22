@@ -40,7 +40,7 @@ export const useFullScreenPlayerStore = createWithEqualityFn<FullScreenPlayerSli
                         set({ ...get(), ...data });
                     },
                 },
-                activeTab: '',
+                activeTab: 'lyrics',
                 coverArtSize: 75,
                 dynamicBackground: true,
                 dynamicImageBlur: 6,
@@ -78,6 +78,11 @@ export const useFullScreenPlayerStore = createWithEqualityFn<FullScreenPlayerSli
                     }
                 }
 
+                if (version < 6) {
+                    const state = persistedState as FullScreenPlayerState;
+                    if (!state.activeTab) state.activeTab = 'lyrics';
+                }
+
                 return persistedState;
             },
             name: 'store_full_screen_player',
@@ -85,7 +90,7 @@ export const useFullScreenPlayerStore = createWithEqualityFn<FullScreenPlayerSli
             // the "shrink visualizer" action back to the full-screen player; it isn't
             // meaningful across app restarts, so it's excluded from persistence.
             partialize: (state) => omit(state, ['visualizerReturnToPlayer']),
-            version: 5,
+            version: 6,
         },
     ),
 );

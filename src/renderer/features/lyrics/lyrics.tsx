@@ -162,22 +162,23 @@ export const Lyrics = ({ fadeOutNoLyricsMessage = true, settingsKey = 'default' 
         return computeSelectedFromResult(data, preferLocalLyrics, indexToUse);
     }, [data, indexToUse, preferLocalLyrics]);
 
-    const deploymentTranslation = useDeploymentTranslation(
-        lyrics?.lyrics,
-        {
-            artist: currentSong?.artists?.map((artist) => artist.name).join(', '),
-            hasExistingTranslation: lyrics?.hasTranslation,
-            name: currentSong?.name,
-        },
-        enableAiTranslation &&
-            !isLyricsDisabled &&
-            !isWaitingToFetchLyrics &&
-            !(
-                !lyrics?.remote &&
-                Array.isArray(data?.local) &&
-                data.local.some((layer) => layer.synced && layer.kind === 'translation')
-            ),
-    );
+    const { isTranslating: isAiTranslating, translation: deploymentTranslation } =
+        useDeploymentTranslation(
+            lyrics?.lyrics,
+            {
+                artist: currentSong?.artists?.map((artist) => artist.name).join(', '),
+                hasExistingTranslation: lyrics?.hasTranslation,
+                name: currentSong?.name,
+            },
+            enableAiTranslation &&
+                !isLyricsDisabled &&
+                !isWaitingToFetchLyrics &&
+                !(
+                    !lyrics?.remote &&
+                    Array.isArray(data?.local) &&
+                    data.local.some((layer) => layer.synced && layer.kind === 'translation')
+                ),
+        );
 
     const { data: furiganaConvertedLyrics } = useFuriganaLyrics(lyrics?.lyrics, !!enableFurigana);
     const { data: romajiConvertedLyrics, isFetching: isFetchingRomaji } = useRomajiLyrics(
@@ -542,6 +543,11 @@ export const Lyrics = ({ fadeOutNoLyricsMessage = true, settingsKey = 'default' 
                     top={0}
                     variant="subtle"
                 />
+                {isAiTranslating && (
+                    <Text className={styles.translationStatus} isMuted isNoSelect role="status">
+                        {t('page.fullscreenPlayer.aiTranslationInProgress')}
+                    </Text>
+                )}
                 {isLoadingLyrics ? (
                     <Spinner container />
                 ) : (
