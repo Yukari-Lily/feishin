@@ -173,10 +173,9 @@ export async function searchLyricCandidates<T extends LyricCandidate>(
         !ranked.some((hit) => (hit.score ?? 1) <= LYRIC_MATCH_THRESHOLD)
     ) {
         const fallback = await search({ ...params, artist: '' });
-        const fallbackRanked = orderSearchResults({
-            params: { ...params, artist: '' },
-            results: fallback,
-        });
+        // The artistless search only widens recall: rank with the real query, or
+        // every fallback hit would look like a perfect match and be auto-applied.
+        const fallbackRanked = orderSearchResults({ params, results: fallback });
         const unique = new Map(ranked.map((hit) => [`${hit.source}:${hit.id}`, hit]));
         for (const hit of fallbackRanked) {
             const key = `${hit.source}:${hit.id}`;
