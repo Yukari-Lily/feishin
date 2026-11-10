@@ -29,7 +29,10 @@ createRoot(document.getElementById('root')!).render(
     <PersistQueryClientProvider
         client={queryClient}
         persistOptions={{
-            buster: 'feishin',
+            // Bump this whenever a change makes previously persisted query data
+            // wrong. Lyrics selections are persisted with the lyrics they were
+            // matched to, so a matcher fix needs a new buster to take effect.
+            buster: 'feishin-2',
             dehydrateOptions: {
                 shouldDehydrateQuery: (query) => {
                     const isSuccess = query.state.status === 'success';
