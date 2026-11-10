@@ -376,7 +376,11 @@ export const lyricsQueries = {
                 };
             },
             queryKey: lyricsKey,
-            staleTime: Infinity,
+            // A song that found remote lyrics keeps them forever. A song that
+            // found none stays stale, so the next time it is played the search
+            // runs again and picks up lyrics added upstream since then.
+            staleTime: (query) =>
+                (query.state.data as LyricsQueryResult | undefined)?.remoteAuto ? Infinity : 0,
             ...args.options,
         });
     },
