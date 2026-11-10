@@ -433,7 +433,9 @@ export const queryKeys: Record<
             proxy: string,
             lines?: string[],
             context?: { artist?: string; name?: string },
-        ) => ['lyrics', 'translation', proxy, lines ?? null, context ?? null] as const,
+            tag?: null | string,
+        ) => ['lyrics', 'translation', proxy, tag ?? null, lines ?? null, context ?? null] as const,
+        lyricsTranslationHealth: (url: string) => ['lyrics', 'translation-health', url] as const,
         randomSongList: (serverId: string, query?: RandomSongListQuery) => {
             if (query) return [serverId, 'songs', 'randomSongList', query] as const;
             return [serverId, 'songs', 'randomSongList'] as const;

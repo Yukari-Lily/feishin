@@ -21,12 +21,21 @@
  *   GET /health
  *   GET /search?source=<slug>&name=&artist=&album=&duration=
  *   GET /get?source=<slug>&id=<remoteId>[&translate=1]
+ *   POST /translate { name?, artist?, lines }
+ *        JSON { lines } normally, or server-sent events when the caller sends
+ *        `Accept: text/event-stream`
  *
  * Source slugs: lrclib | netease | simpmusic | genius
  */
 
 import { PROVIDERS, PROVIDER_SLUGS, resolveEnabledSources } from './providers/index.js';
-import { readTranslationLines, translateLines, translationEnabled } from './translation.js';
+import {
+    readTranslationLines,
+    streamTranslation,
+    translationEnabled,
+    translationLimits,
+    translationTag,
+} from './translation.js';
 
 const VERSION = '1.0.0';
 const DEFAULT_CACHE_TTL_SECONDS = 3600;
@@ -110,6 +119,72 @@ function badRequest(message, env, status = 400) {
     return json({ error: message }, { env, status });
 }
 
+/** True when the caller opted into incremental delivery. */
+function wantsEventStream(request) {
+    const accept = request.headers.get('accept') || '';
+    return accept.includes('text/event-stream');
+}
+
+function sseEvent(name, data) {
+    return `event: ${name}\ndata: ${data}\n\n`;
+}
+
+/**
+ * Streams translation events as server-sent events.
+ *
+ * A first comment line is written immediately so a buffering proxy is easy to
+ * tell apart from a slow model: on an unbuffered deployment the headers plus
+ * that line arrive right away, otherwise everything shows up at the end.
+ */
+function translationResponse(events, abort, env) {
+    const encoder = new TextEncoder();
+    const iterator = events[Symbol.asyncIterator]();
+
+    const body = new ReadableStream({
+        async cancel() {
+            abort.abort();
+            await iterator.return?.();
+        },
+        async start(controller) {
+            const write = (chunk) => {
+                try {
+                    controller.enqueue(encoder.encode(chunk));
+                    return true;
+                } catch {
+                    return false;
+                }
+            };
+
+            write(': open\n\n');
+            try {
+                while (true) {
+                    const step = await iterator.next();
+                    if (step.done) break;
+                    const event = step.value;
+                    const payload = event.type === 'line'
+                        ? sseEvent('line', JSON.stringify({ i: event.index, t: event.text }))
+                        : sseEvent('done', JSON.stringify({ lines: event.lines }));
+                    if (!write(payload)) return;
+                }
+            } catch {
+                write(sseEvent('done', JSON.stringify({ lines: null })));
+            } finally {
+                try {
+                    controller.close();
+                } catch {
+                    // The client is gone.
+                }
+            }
+        },
+    });
+
+    const headers = new Headers(corsHeaders(env));
+    headers.set('Cache-Control', 'no-store');
+    headers.set('Content-Type', 'text/event-stream; charset=utf-8');
+    headers.set('X-Accel-Buffering', 'no');
+    return new Response(body, { headers, status: 200 });
+}
+
 async function handleSearch({ ctx, env, request, url }) {
     const slug = (url.searchParams.get('source') || '').toLowerCase();
     if (!slug) return badRequest(`missing "source" parameter, expected one of: ${PROVIDER_SLUGS.join(', ')}`, env);
@@ -171,6 +246,76 @@ async function handleGet({ ctx, env, url }) {
     });
 }
 
+/**
+ * Per instance request limits.
+ *
+ * Edge runtimes start a fresh instance per concurrent request, so these counters
+ * bound bursts and runaway clients on a warm instance - they are not a global
+ * quota. Use a platform rate limit rule or a provider budget for that.
+ */
+const WINDOW_MS = 60000;
+const MAX_CONCURRENT = 2;
+const MAX_PER_CLIENT = 15;
+const MAX_PER_INSTANCE = 30;
+const MAX_TRACKED_CLIENTS = 500;
+
+let activeTranslations = 0;
+let instanceWindow = { count: 0, start: 0 };
+const clientWindows = new Map();
+
+/** Client address as reported by the platform, best effort. */
+function clientKey(request) {
+    const forwarded = (request.headers.get('x-forwarded-for') || '').split(',')[0].trim();
+    return (
+        forwarded ||
+        request.headers.get('cf-connecting-ip') ||
+        request.headers.get('eo-connecting-ip') ||
+        request.headers.get('x-real-ip') ||
+        'unknown'
+    );
+}
+
+function windowCount(entry, now) {
+    if (now - entry.start > WINDOW_MS) return { count: 0, start: now };
+    return entry;
+}
+
+/** Returns the seconds to wait, or 0 when the request may proceed. */
+function rateLimited(key, now = Date.now()) {
+    instanceWindow = windowCount(instanceWindow, now);
+    if (instanceWindow.count >= MAX_PER_INSTANCE) {
+        return Math.max(1, Math.ceil((WINDOW_MS - (now - instanceWindow.start)) / 1000));
+    }
+
+    const entry = clientWindows.get(key) ?? { count: 0, start: now };
+    const current = windowCount(entry, now);
+    if (current.count >= MAX_PER_CLIENT) {
+        clientWindows.set(key, current);
+        return Math.max(1, Math.ceil((WINDOW_MS - (now - current.start)) / 1000));
+    }
+
+    instanceWindow = { count: instanceWindow.count + 1, start: instanceWindow.start };
+    clientWindows.set(key, { count: current.count + 1, start: current.start });
+    if (clientWindows.size > MAX_TRACKED_CLIENTS) {
+        clientWindows.delete(clientWindows.keys().next().value);
+    }
+    return 0;
+}
+
+function tooManyRequests(retryAfter, env, reason, status = 429) {
+    const response = json({ error: reason, retryAfter }, { env, status });
+    response.headers.set('Cache-Control', 'no-store');
+    response.headers.set('Retry-After', String(retryAfter));
+    return response;
+}
+
+/** Test hook: the counters are module state, so suites need a fresh slate. */
+export function resetRateLimits() {
+    activeTranslations = 0;
+    instanceWindow = { count: 0, start: 0 };
+    clientWindows.clear();
+}
+
 export default {
     async fetch(request, env = {}, ctx = {}) {
         const url = new URL(request.url);
@@ -186,16 +331,58 @@ export default {
             try {
                 translationRequest = await readTranslationLines(request);
             } catch {
-                return badRequest('expected up to 300 lyric lines (20,000 characters)', env);
+                const limits = translationLimits();
+                return badRequest(
+                    `expected 1 to ${limits.lines} lyric lines, ${limits.lineChars} characters per line, ` +
+                        `${limits.totalChars} characters in total`,
+                    env,
+                );
             }
-            const response = json(
+
+            const retryAfter = rateLimited(clientKey(request));
+            if (retryAfter > 0) return tooManyRequests(retryAfter, env, 'rate limited');
+            if (activeTranslations >= MAX_CONCURRENT) {
+                // Not the client's fault, so answer 503: the browser only backs off
+                // on 429 and must stay free to translate another song right away.
+                return tooManyRequests(5, env, 'translation already in progress', 503);
+            }
+            activeTranslations += 1;
+
+            const abort = new AbortController();
+            const incoming = request.signal;
+            if (incoming) {
+                if (incoming.aborted) abort.abort();
+                else incoming.addEventListener('abort', () => abort.abort(), { once: true });
+            }
+            const events = streamTranslation(
+                translationRequest.lines,
+                env,
+                translationRequest,
                 {
-                    lines: await translateLines(translationRequest.lines, env, translationRequest),
+                    onRelease: () => {
+                        activeTranslations = Math.max(0, activeTranslations - 1);
+                    },
+                    signal: abort.signal,
                 },
-                { env },
             );
-            response.headers.set('Cache-Control', 'no-store');
-            return response;
+
+            // Existing web bundles still ask for a single JSON body. They keep
+            // working unchanged until they send `Accept: text/event-stream`.
+            if (!wantsEventStream(request)) {
+                let lines = null;
+                try {
+                    for await (const event of events) {
+                        if (event.type === 'done') lines = event.lines;
+                    }
+                } catch {
+                    lines = null;
+                }
+                const buffered = json({ lines }, { env });
+                buffered.headers.set('Cache-Control', 'no-store');
+                return buffered;
+            }
+
+            return translationResponse(events, abort, env);
         }
 
         if (request.method !== 'GET' && request.method !== 'HEAD') {
@@ -210,6 +397,7 @@ export default {
                     ok: true,
                     service: 'feishin-lyrics-worker',
                     sources: resolveEnabledSources(env),
+                    translationTag: await translationTag(env),
                     version: VERSION,
                 },
                 { env },
@@ -226,7 +414,7 @@ export default {
                         '/get': 'GET /get?source=<slug>&id=<remoteId>[&translate=1]',
                         '/health': 'GET /health',
                         '/search': 'GET /search?source=<slug>&name=&artist=&album=&duration=',
-                        '/translate': 'POST /translate { lines: string[] }',
+                        '/translate': 'POST /translate { lines: string[] } -> JSON, or text/event-stream when accepted',
                     },
                     service: 'feishin-lyrics-worker',
                     sources: resolveEnabledSources(env).map((slug) => ({

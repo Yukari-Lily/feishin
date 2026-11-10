@@ -413,12 +413,40 @@ function resolveEnabledSources(env2) {
 // lyrics-proxy/src/translation.js
 var MAX_BODY_BYTES = 64 * 1024;
 var MAX_CACHE_ITEMS = 100;
+var MAX_LINES = 150;
+var MAX_LINE_CHARS = 400;
+var MAX_TOTAL_CHARS = 1e4;
+var MAX_NAME_CHARS = 300;
+var MAX_ARTIST_CHARS = 500;
+var MAX_LINE_LENGTH = 2e3;
+var FIRST_CHUNK_TIMEOUT_MS = 45e3;
+var IDLE_TIMEOUT_MS = 3e4;
+var BUFFERED_TIMEOUT_MS = 9e4;
+var CACHE_TTL_MS = 864e5;
+var TRANSLATION_FORMAT_VERSION = 1;
 var cache = /* @__PURE__ */ new Map();
 var pending = /* @__PURE__ */ new Map();
-var windowStart = 0;
-var requestCount = 0;
+var SSE_DONE = Symbol("sse-done");
 function translationEnabled(env2) {
   return Boolean(env2?.LYRICS_AI_URL && env2?.LYRICS_AI_API_KEY && env2?.LYRICS_AI_MODEL);
+}
+async function translationTag(env2) {
+  if (!translationEnabled(env2)) return null;
+  const target = env2.LYRICS_AI_TARGET_LANGUAGE || "Simplified Chinese";
+  const encoded = new TextEncoder().encode(
+    `${env2.LYRICS_AI_MODEL}|${target}|${TRANSLATION_FORMAT_VERSION}`
+  );
+  const digest = await crypto.subtle.digest("SHA-256", encoded);
+  return Array.from(new Uint8Array(digest).slice(0, 6), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+function translationLimits() {
+  return {
+    artistChars: MAX_ARTIST_CHARS,
+    lineChars: MAX_LINE_CHARS,
+    lines: MAX_LINES,
+    nameChars: MAX_NAME_CHARS,
+    totalChars: MAX_TOTAL_CHARS
+  };
 }
 async function readTranslationLines(request) {
   const reader = request.body?.getReader();
@@ -444,50 +472,127 @@ async function readTranslationLines(request) {
   const lines = payload?.lines;
   const name = typeof payload?.name === "string" ? payload.name.trim() : "";
   const artist = typeof payload?.artist === "string" ? payload.artist.trim() : "";
-  if (name.length > 300 || artist.length > 500 || !Array.isArray(lines) || lines.length < 1 || lines.length > 300 || lines.some((line) => typeof line !== "string" || !line.trim() || line.length > 1e3 || /[\r\n]|_BREAK_/.test(line)) || lines.join("").length > 2e4) {
+  if (name.length > MAX_NAME_CHARS || artist.length > MAX_ARTIST_CHARS || !Array.isArray(lines) || lines.length < 1 || lines.length > MAX_LINES || lines.some((line) => typeof line !== "string" || !line.trim() || line.length > MAX_LINE_CHARS || /[\r\n]|_BREAK_/.test(line)) || lines.join("").length > MAX_TOTAL_CHARS) {
     throw new Error("invalid lines");
   }
   return { artist, lines, name };
 }
-async function translateLines(lines, env2, context = {}) {
-  if (!translationEnabled(env2)) return null;
+async function* streamTranslation(lines, env2, context = {}, options = {}) {
+  try {
+    yield* runTranslation(lines, env2, context, options);
+  } finally {
+    options.onRelease?.();
+  }
+}
+async function* runTranslation(lines, env2, context = {}, options = {}) {
+  if (!translationEnabled(env2)) {
+    yield { lines: null, type: "done" };
+    return;
+  }
   const target = env2.LYRICS_AI_TARGET_LANGUAGE || "Simplified Chinese";
+  const key = await translationKey(lines, env2, target, context);
+  const cached = cache.get(key);
+  if (cached && cached.expires > Date.now()) {
+    yield* replay(cached.lines);
+    yield { lines: cached.lines, type: "done" };
+    return;
+  }
+  const inflight = pending.get(key);
+  if (inflight) {
+    const shared = await inflight;
+    if (shared) yield* replay(shared);
+    yield { lines: shared, type: "done" };
+    return;
+  }
+  let settle;
+  pending.set(key, new Promise((resolve) => {
+    settle = resolve;
+  }));
+  let released = false;
+  const release = (value) => {
+    if (released) return;
+    released = true;
+    pending.delete(key);
+    settle(value);
+  };
+  const queue = [];
+  const collected = new Array(lines.length).fill(null);
+  const scanner = createLineScanner((index, text) => queue.push([index, text]));
+  function* drain() {
+    while (queue.length > 0) {
+      const [index, text] = queue.shift();
+      if (collected[index] == null) collected[index] = text;
+      yield { index, text, type: "line" };
+    }
+  }
+  try {
+    let failed = false;
+    try {
+      for await (const delta of upstreamDeltas(lines, env2, target, context, options.signal)) {
+        scanner.push(delta);
+        yield* drain();
+      }
+      scanner.end();
+      yield* drain();
+    } catch {
+      console.warn("Lyrics AI translation ended early; keeping what arrived");
+      failed = true;
+    }
+    const parsed = scanner.result();
+    for (let index = 0; index < lines.length; index += 1) {
+      collected[index] = sanitizeLine(parsed?.[index] ?? collected[index]);
+    }
+    const complete = !failed && collected.every((entry) => entry != null);
+    const result = collected.map((entry, index) => entry ?? lines[index].trim());
+    if (complete) {
+      if (cache.size >= MAX_CACHE_ITEMS) cache.delete(cache.keys().next().value);
+      cache.set(key, { expires: Date.now() + CACHE_TTL_MS, lines: result });
+    }
+    release(result);
+    yield { lines: result, type: "done" };
+  } finally {
+    release(null);
+  }
+}
+function* replay(lines) {
+  for (let index = 0; index < lines.length; index += 1) {
+    yield { index, text: lines[index], type: "line" };
+  }
+}
+async function translationKey(lines, env2, target, context) {
   const encoded = new TextEncoder().encode(JSON.stringify([
     env2.LYRICS_AI_URL,
     env2.LYRICS_AI_API_KEY,
     env2.LYRICS_AI_MODEL,
     target,
+    TRANSLATION_FORMAT_VERSION,
     context.name || "",
     context.artist || "",
     lines
   ]));
   const digest = await crypto.subtle.digest("SHA-256", encoded);
-  const key = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
-  const cached = cache.get(key);
-  if (cached && cached.expires > Date.now()) return cached.lines;
-  if (pending.has(key)) return pending.get(key);
-  if (Date.now() - windowStart > 6e4) {
-    windowStart = Date.now();
-    requestCount = 0;
-  }
-  if (pending.size >= 2 || requestCount >= 20) return null;
-  requestCount += 1;
-  const task = requestTranslation(lines, env2, target, context).then((translated) => {
-    if (translated) {
-      if (cache.size >= MAX_CACHE_ITEMS) cache.delete(cache.keys().next().value);
-      cache.set(key, { expires: Date.now() + 864e5, lines: translated });
-    }
-    return translated;
-  }).finally(() => pending.delete(key));
-  pending.set(key, task);
-  return task;
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
-async function requestTranslation(lines, env2, target, context) {
+function sanitizeLine(value) {
+  if (typeof value !== "string") return null;
+  const cleaned = value.replace(/_BREAK_/g, " ").replace(/[\r\n]+/g, " ").trim();
+  return cleaned ? cleaned.slice(0, MAX_LINE_LENGTH) : null;
+}
+async function* upstreamDeltas(lines, env2, target, context, externalSignal) {
+  const url = new URL(env2.LYRICS_AI_URL);
+  if (!["https:", "http:"].includes(url.protocol)) throw new Error("invalid translation endpoint");
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 25e3);
+  if (externalSignal) {
+    if (externalSignal.aborted) controller.abort();
+    else externalSignal.addEventListener("abort", () => controller.abort(), { once: true });
+  }
+  let timer = null;
+  const arm = (ms) => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => controller.abort(), ms);
+  };
+  arm(FIRST_CHUNK_TIMEOUT_MS);
   try {
-    const url = new URL(env2.LYRICS_AI_URL);
-    if (!["https:", "http:"].includes(url.protocol)) return null;
     const response = await fetch(url, {
       body: JSON.stringify({
         messages: [
@@ -505,6 +610,7 @@ async function requestTranslation(lines, env2, target, context) {
           }
         ],
         model: env2.LYRICS_AI_MODEL,
+        stream: true,
         temperature: 0.15
       }),
       headers: {
@@ -514,20 +620,149 @@ async function requestTranslation(lines, env2, target, context) {
       method: "POST",
       signal: controller.signal
     });
-    if (!response.ok) throw new Error("translation upstream failed");
-    const payload = await response.json();
-    const content = payload?.choices?.[0]?.message?.content;
-    if (typeof content !== "string") throw new Error("missing translation");
-    const { translations } = JSON.parse(content.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, ""));
-    if (!Array.isArray(translations) || translations.length !== lines.length || translations.some((line) => typeof line !== "string" || !line.trim() || line.length > 2e3 || /[\r\n]|_BREAK_/.test(line)) || translations.join("").length > 4e4) {
-      throw new Error("invalid translation alignment");
+    if (!response.ok) throw new Error(`translation upstream responded ${response.status}`);
+    const type = response.headers.get("content-type") || "";
+    if (!type.includes("text/event-stream")) {
+      arm(BUFFERED_TIMEOUT_MS);
+      const payload = await response.json();
+      const content = payload?.choices?.[0]?.message?.content;
+      if (typeof content !== "string") throw new Error("missing translation");
+      yield content;
+      return;
     }
-    return translations.map((line) => line.trim());
-  } catch {
-    console.warn("Lyrics AI translation failed; keeping original lyrics");
-    return null;
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    try {
+      while (true) {
+        arm(IDLE_TIMEOUT_MS);
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let newline;
+        while ((newline = buffer.indexOf("\n")) >= 0) {
+          const raw = buffer.slice(0, newline).trim();
+          buffer = buffer.slice(newline + 1);
+          const delta = parseSseLine(raw);
+          if (delta === SSE_DONE) return;
+          if (typeof delta === "string" && delta) yield delta;
+        }
+      }
+    } finally {
+      try {
+        reader.releaseLock();
+      } catch {
+      }
+    }
   } finally {
-    clearTimeout(timeout);
+    if (timer) clearTimeout(timer);
+  }
+}
+function parseSseLine(raw) {
+  if (!raw || raw.startsWith(":")) return void 0;
+  const colon = raw.indexOf(":");
+  if (colon <= 0) return void 0;
+  if (raw.slice(0, colon) !== "data") return void 0;
+  const value = raw.slice(colon + 1).trim();
+  if (value === "[DONE]") return SSE_DONE;
+  try {
+    const payload = JSON.parse(value);
+    const delta = payload?.choices?.[0]?.delta?.content ?? payload?.choices?.[0]?.text;
+    return typeof delta === "string" ? delta : void 0;
+  } catch {
+    return void 0;
+  }
+}
+function createLineScanner(emit) {
+  let buffer = "";
+  let cursor = 0;
+  let state = "seek";
+  let start = 0;
+  let unicodeLeft = 0;
+  let index = 0;
+  function scan() {
+    while (cursor < buffer.length && state !== "done") {
+      const char = buffer[cursor];
+      if (state === "seek") {
+        if (char === "[") state = "array";
+        cursor += 1;
+      } else if (state === "array") {
+        if (char === '"') {
+          state = "value";
+          start = cursor;
+          cursor += 1;
+        } else if (char === "]") {
+          state = "done";
+          cursor += 1;
+        } else if (char === "," || char === " " || char === "\n" || char === "\r" || char === "	") {
+          cursor += 1;
+        } else {
+          state = "skip";
+          cursor += 1;
+        }
+      } else if (state === "skip") {
+        if (char === ",") {
+          state = "array";
+          index += 1;
+        } else if (char === "]") {
+          state = "done";
+          index += 1;
+        }
+        cursor += 1;
+      } else if (state === "value") {
+        if (char === "\\") {
+          state = "escape";
+          cursor += 1;
+        } else if (char === '"') {
+          const text = decodeString(buffer.slice(start, cursor + 1));
+          cursor += 1;
+          state = "array";
+          if (text !== null) emit(index, text);
+          index += 1;
+        } else {
+          cursor += 1;
+        }
+      } else if (state === "escape") {
+        cursor += 1;
+        if (char === "u") {
+          state = "unicode";
+          unicodeLeft = 4;
+        } else {
+          state = "value";
+        }
+      } else {
+        cursor += 1;
+        unicodeLeft -= 1;
+        if (unicodeLeft === 0) state = "value";
+      }
+    }
+  }
+  return {
+    end() {
+      scan();
+    },
+    /** The authoritative array, or null when the model did not produce one. */
+    result() {
+      const text = buffer.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
+      try {
+        const translations = JSON.parse(text)?.translations;
+        return Array.isArray(translations) ? translations : null;
+      } catch {
+        return null;
+      }
+    },
+    push(chunk) {
+      buffer += chunk;
+      scan();
+    }
+  };
+}
+function decodeString(literal) {
+  try {
+    const value = JSON.parse(literal);
+    return typeof value === "string" ? value : null;
+  } catch {
+    return null;
   }
 }
 
@@ -597,6 +832,58 @@ function readSearchParams(url) {
 function badRequest(message, env2, status = 400) {
   return json({ error: message }, { env: env2, status });
 }
+function wantsEventStream(request) {
+  const accept = request.headers.get("accept") || "";
+  return accept.includes("text/event-stream");
+}
+function sseEvent(name, data) {
+  return `event: ${name}
+data: ${data}
+
+`;
+}
+function translationResponse(events, abort, env2) {
+  const encoder = new TextEncoder();
+  const iterator = events[Symbol.asyncIterator]();
+  const body = new ReadableStream({
+    async cancel() {
+      abort.abort();
+      await iterator.return?.();
+    },
+    async start(controller) {
+      const write = (chunk) => {
+        try {
+          controller.enqueue(encoder.encode(chunk));
+          return true;
+        } catch {
+          return false;
+        }
+      };
+      write(": open\n\n");
+      try {
+        while (true) {
+          const step = await iterator.next();
+          if (step.done) break;
+          const event = step.value;
+          const payload = event.type === "line" ? sseEvent("line", JSON.stringify({ i: event.index, t: event.text })) : sseEvent("done", JSON.stringify({ lines: event.lines }));
+          if (!write(payload)) return;
+        }
+      } catch {
+        write(sseEvent("done", JSON.stringify({ lines: null })));
+      } finally {
+        try {
+          controller.close();
+        } catch {
+        }
+      }
+    }
+  });
+  const headers = new Headers(corsHeaders(env2));
+  headers.set("Cache-Control", "no-store");
+  headers.set("Content-Type", "text/event-stream; charset=utf-8");
+  headers.set("X-Accel-Buffering", "no");
+  return new Response(body, { headers, status: 200 });
+}
 async function handleSearch({ ctx, env: env2, request, url }) {
   const slug = (url.searchParams.get("source") || "").toLowerCase();
   if (!slug) return badRequest(`missing "source" parameter, expected one of: ${PROVIDER_SLUGS.join(", ")}`, env2);
@@ -647,6 +934,46 @@ async function handleGet({ ctx, env: env2, url }) {
     }
   });
 }
+var WINDOW_MS = 6e4;
+var MAX_CONCURRENT = 2;
+var MAX_PER_CLIENT = 15;
+var MAX_PER_INSTANCE = 30;
+var MAX_TRACKED_CLIENTS = 500;
+var activeTranslations = 0;
+var instanceWindow = { count: 0, start: 0 };
+var clientWindows = /* @__PURE__ */ new Map();
+function clientKey(request) {
+  const forwarded = (request.headers.get("x-forwarded-for") || "").split(",")[0].trim();
+  return forwarded || request.headers.get("cf-connecting-ip") || request.headers.get("eo-connecting-ip") || request.headers.get("x-real-ip") || "unknown";
+}
+function windowCount(entry, now) {
+  if (now - entry.start > WINDOW_MS) return { count: 0, start: now };
+  return entry;
+}
+function rateLimited(key, now = Date.now()) {
+  instanceWindow = windowCount(instanceWindow, now);
+  if (instanceWindow.count >= MAX_PER_INSTANCE) {
+    return Math.max(1, Math.ceil((WINDOW_MS - (now - instanceWindow.start)) / 1e3));
+  }
+  const entry = clientWindows.get(key) ?? { count: 0, start: now };
+  const current = windowCount(entry, now);
+  if (current.count >= MAX_PER_CLIENT) {
+    clientWindows.set(key, current);
+    return Math.max(1, Math.ceil((WINDOW_MS - (now - current.start)) / 1e3));
+  }
+  instanceWindow = { count: instanceWindow.count + 1, start: instanceWindow.start };
+  clientWindows.set(key, { count: current.count + 1, start: current.start });
+  if (clientWindows.size > MAX_TRACKED_CLIENTS) {
+    clientWindows.delete(clientWindows.keys().next().value);
+  }
+  return 0;
+}
+function tooManyRequests(retryAfter, env2, reason, status = 429) {
+  const response = json({ error: reason, retryAfter }, { env: env2, status });
+  response.headers.set("Cache-Control", "no-store");
+  response.headers.set("Retry-After", String(retryAfter));
+  return response;
+}
 var src_default = {
   async fetch(request, env2 = {}, ctx = {}) {
     const url = new URL(request.url);
@@ -660,16 +987,49 @@ var src_default = {
       try {
         translationRequest = await readTranslationLines(request);
       } catch {
-        return badRequest("expected up to 300 lyric lines (20,000 characters)", env2);
+        const limits = translationLimits();
+        return badRequest(
+          `expected 1 to ${limits.lines} lyric lines, ${limits.lineChars} characters per line, ${limits.totalChars} characters in total`,
+          env2
+        );
       }
-      const response = json(
+      const retryAfter = rateLimited(clientKey(request));
+      if (retryAfter > 0) return tooManyRequests(retryAfter, env2, "rate limited");
+      if (activeTranslations >= MAX_CONCURRENT) {
+        return tooManyRequests(5, env2, "translation already in progress", 503);
+      }
+      activeTranslations += 1;
+      const abort = new AbortController();
+      const incoming = request.signal;
+      if (incoming) {
+        if (incoming.aborted) abort.abort();
+        else incoming.addEventListener("abort", () => abort.abort(), { once: true });
+      }
+      const events = streamTranslation(
+        translationRequest.lines,
+        env2,
+        translationRequest,
         {
-          lines: await translateLines(translationRequest.lines, env2, translationRequest)
-        },
-        { env: env2 }
+          onRelease: () => {
+            activeTranslations = Math.max(0, activeTranslations - 1);
+          },
+          signal: abort.signal
+        }
       );
-      response.headers.set("Cache-Control", "no-store");
-      return response;
+      if (!wantsEventStream(request)) {
+        let lines = null;
+        try {
+          for await (const event of events) {
+            if (event.type === "done") lines = event.lines;
+          }
+        } catch {
+          lines = null;
+        }
+        const buffered = json({ lines }, { env: env2 });
+        buffered.headers.set("Cache-Control", "no-store");
+        return buffered;
+      }
+      return translationResponse(events, abort, env2);
     }
     if (request.method !== "GET" && request.method !== "HEAD") {
       return json({ error: "method not allowed" }, { env: env2, status: 405 });
@@ -682,6 +1042,7 @@ var src_default = {
           ok: true,
           service: "feishin-lyrics-worker",
           sources: resolveEnabledSources(env2),
+          translationTag: await translationTag(env2),
           version: VERSION
         },
         { env: env2 }
@@ -696,7 +1057,7 @@ var src_default = {
             "/get": "GET /get?source=<slug>&id=<remoteId>[&translate=1]",
             "/health": "GET /health",
             "/search": "GET /search?source=<slug>&name=&artist=&album=&duration=",
-            "/translate": "POST /translate { lines: string[] }"
+            "/translate": "POST /translate { lines: string[] } -> JSON, or text/event-stream when accepted"
           },
           service: "feishin-lyrics-worker",
           sources: resolveEnabledSources(env2).map((slug) => ({

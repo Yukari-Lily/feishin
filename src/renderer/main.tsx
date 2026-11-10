@@ -37,8 +37,13 @@ createRoot(document.getElementById('root')!).render(
                         query.queryKey.includes('song') &&
                         query.queryKey.includes('lyrics') &&
                         query.queryKey.includes('select');
+                    // Translations are keyed by model and prompt version, so a
+                    // cached one is only reused while the deployment keeps the
+                    // same model.
+                    const isTranslationQueryKey =
+                        query.queryKey.includes('lyrics') && query.queryKey.includes('translation');
 
-                    return isSuccess && isLyricsQueryKey;
+                    return isSuccess && (isLyricsQueryKey || isTranslationQueryKey);
                 },
             },
             hydrateOptions: {

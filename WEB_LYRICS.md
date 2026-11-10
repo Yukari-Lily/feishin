@@ -101,11 +101,29 @@ and commit them (neither platform runs the generator itself):
 
 ```bash
 node scripts/build-lyrics-proxy.mjs                 # regenerate the two entry points
-node --test lyrics-proxy/test/*.test.mjs            # 56 offline tests for the vendored source
+node --test lyrics-proxy/test/*.test.mjs            # 75 offline tests for the vendored source
 ```
 
 Neither `package.json` nor `pnpm-lock.yaml` is touched by this fork, which keeps
 upstream merges conflict free for the two files that change most often.
+
+### Streaming translation
+
+`POST /api/lyrics/translate` translates the whole song in one upstream request
+and streams the result when the caller sends `Accept: text/event-stream`: one
+`event: line` per finished line, then one `event: done` with the full array. A
+caller without that header still gets the older single JSON body, so a new
+worker can be deployed before the new web bundle. The incremental parser only
+decides what to show early; the final `JSON.parse` result stays authoritative,
+and a line that cannot be used falls back to the original text instead of
+discarding the song.
+
+Vercel runs the function through `api/lyrics/[...path].mjs`, and `vercel.json`
+raises its `maxDuration` to 60 seconds because a full song can take that long.
+On EdgeOne Pages the function duration limit is configured in the EdgeOne
+console. If a platform buffers the response, translations still arrive correctly,
+just all at once; the bundled test and the `curl -N` check in
+`lyrics-proxy/README.md` tell the two cases apart.
 
 ## Configuration
 

@@ -1,6 +1,11 @@
 {
   "buildCommand": "bash build-web.sh",
   "outputDirectory": "out/web",
+  "functions": {
+    "api/lyrics/**": {
+      "maxDuration": 60
+    }
+  },
   "headers": [
     {
       "source": "/",
